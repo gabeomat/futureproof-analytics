@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3 } from "lucide-react";
+import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { MRRChart, RevenueBreakdownChart } from "@/components/RevenueChart";
 import { ChurnChart } from "@/components/ChurnAnalysis";
 import { MemberComposition } from "@/components/MemberComposition";
 import { DualMRRView } from "@/components/DualMRRView";
 import { ProjectionPlayground } from "@/components/ProjectionPlayground";
+import { DataEntry } from "@/components/DataEntry";
 import { currentSnapshot, formatCurrency, formatPercent } from "@/lib/data";
 
-type Tab = "overview" | "projections";
+type Tab = "overview" | "projections" | "data-entry";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -43,6 +44,15 @@ const Index = () => {
               >
                 <Zap className="w-3.5 h-3.5 inline mr-1.5" />
                 MRR Playground
+              </button>
+              <button
+                onClick={() => setActiveTab("data-entry")}
+                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "data-entry" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
+                }`}
+              >
+                <ClipboardEdit className="w-3.5 h-3.5 inline mr-1.5" />
+                Data Entry
               </button>
             </div>
           </div>
@@ -112,13 +122,21 @@ const Index = () => {
             {/* Dual MRR View */}
             <DualMRRView />
           </>
-        ) : (
+        ) : activeTab === "projections" ? (
           <>
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">MRR Projection Playground</h2>
               <p className="text-sm text-muted-foreground mt-1">Adjust the levers to see how growth, churn, and pricing changes impact your MRR trajectory</p>
             </div>
             <ProjectionPlayground />
+          </>
+        ) : (
+          <>
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Monthly Data Entry</h2>
+              <p className="text-sm text-muted-foreground mt-1">Input your Skool MRR breakdown each month — New, Upgrades, Existing, Downgrades, Churn</p>
+            </div>
+            <DataEntry />
           </>
         )}
       </main>
