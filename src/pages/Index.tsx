@@ -122,13 +122,21 @@ const Index = () => {
             {/* Dual MRR View */}
             <DualMRRView />
           </>
-        ) : (
+        ) : activeTab === "projections" ? (
           <>
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">MRR Projection Playground</h2>
               <p className="text-sm text-muted-foreground mt-1">Adjust the levers to see how growth, churn, and pricing changes impact your MRR trajectory</p>
             </div>
             <ProjectionPlayground />
+          </>
+        ) : (
+          <>
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Monthly Data Entry</h2>
+              <p className="text-sm text-muted-foreground mt-1">Input your Skool MRR breakdown each month — New, Upgrades, Existing, Downgrades, Churn</p>
+            </div>
+            <DataEntry />
           </>
         )}
       </main>
