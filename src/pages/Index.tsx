@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3 } from "lucide-react";
+import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { MRRChart, RevenueBreakdownChart } from "@/components/RevenueChart";
 import { ChurnChart } from "@/components/ChurnAnalysis";
 import { MemberComposition } from "@/components/MemberComposition";
 import { DualMRRView } from "@/components/DualMRRView";
 import { ProjectionPlayground } from "@/components/ProjectionPlayground";
+import { DataEntry } from "@/components/DataEntry";
 import { currentSnapshot, formatCurrency, formatPercent } from "@/lib/data";
 
-type Tab = "overview" | "projections";
+type Tab = "overview" | "projections" | "data-entry";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
