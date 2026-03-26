@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_metrics: {
+        Row: {
+          about_page_traffic: number
+          created_at: string
+          date: string
+          discovery_rank: number
+          group_activity: number
+          id: string
+          members: number
+          mrr: number
+          profile_activity: number
+          updated_at: string
+        }
+        Insert: {
+          about_page_traffic?: number
+          created_at?: string
+          date: string
+          discovery_rank?: number
+          group_activity?: number
+          id?: string
+          members?: number
+          mrr?: number
+          profile_activity?: number
+          updated_at?: string
+        }
+        Update: {
+          about_page_traffic?: number
+          created_at?: string
+          date?: string
+          discovery_rank?: number
+          group_activity?: number
+          id?: string
+          members?: number
+          mrr?: number
+          profile_activity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monthly_revenue: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          new_revenue: number
+          revenue_churn: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          new_revenue?: number
+          revenue_churn?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          new_revenue?: number
+          revenue_churn?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
