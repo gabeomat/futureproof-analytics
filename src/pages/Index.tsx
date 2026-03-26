@@ -45,6 +45,15 @@ const Index = () => {
                 <Zap className="w-3.5 h-3.5 inline mr-1.5" />
                 MRR Playground
               </button>
+              <button
+                onClick={() => setActiveTab("data-entry")}
+                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "data-entry" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
+                }`}
+              >
+                <ClipboardEdit className="w-3.5 h-3.5 inline mr-1.5" />
+                Data Entry
+              </button>
             </div>
           </div>
         </div>
