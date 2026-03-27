@@ -86,6 +86,13 @@ export function DataEntry() {
   const [monthlyLoading, setMonthlyLoading] = useState(true);
   const [monthlySaving, setMonthlySaving] = useState(false);
 
+  // Acquisition state
+  const [acqEntries, setAcqEntries] = useState<AcquisitionEntry[]>([]);
+  const [acqDraft, setAcqDraft] = useState<AcquisitionEntry>({ ...EMPTY_ACQ });
+  const [showAcqForm, setShowAcqForm] = useState(false);
+  const [acqLoading, setAcqLoading] = useState(true);
+  const [acqSaving, setAcqSaving] = useState(false);
+
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
 
@@ -93,6 +100,7 @@ export function DataEntry() {
   useEffect(() => {
     loadDaily();
     loadMonthly();
+    loadAcquisitions();
   }, []);
 
   const loadDaily = async () => {
