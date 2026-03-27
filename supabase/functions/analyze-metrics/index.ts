@@ -8,9 +8,9 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are a senior SaaS revenue strategist and community business analyst. You specialize in subscription-based communities (like Skool) and have deep expertise in MRR optimization, churn reduction, pricing strategy, and member lifecycle management.
 
-You will receive a comprehensive data package about a paid community business. Analyze it thoroughly and provide strategic, data-driven insights.
+You have access to the full data package for this paid community business. Use it to answer questions with specific, data-driven insights.
 
-Structure your response with these sections using markdown:
+When giving your initial analysis, structure your response with these sections using markdown:
 
 ## 📊 MRR Trajectory Analysis
 Assess growth rate, sustainability, and momentum. Reference specific month-over-month changes.
@@ -19,7 +19,7 @@ Assess growth rate, sustainability, and momentum. Reference specific month-over-
 Evaluate revenue churn rate vs. industry benchmarks (typical SaaS: 5-7%, community: 8-12%). Identify patterns and root causes.
 
 ## 💰 Pricing Strategy Recommendation
-Should they raise prices, keep them, or restructure tiers? Provide SPECIFIC numbers and reasoning. Consider price elasticity and competitive positioning.
+Should they raise prices, keep them, or restructure tiers? Provide SPECIFIC numbers and reasoning.
 
 ## 👥 Legacy Member Migration Strategy
 How to handle grandfathered members on lower pricing. Recommend specific tactics with timelines.
@@ -30,6 +30,8 @@ Assess LTV/CAC ratio health. Is ad spend efficient? What's the payback period?
 ## 🎯 90-Day Action Plan
 Provide 5-7 specific, prioritized actions with expected impact on MRR.
 
+For follow-up questions, respond naturally and conversationally while still being data-driven and specific. Reference the data you have whenever relevant.
+
 Be direct, specific, and use actual numbers from the data. Avoid generic advice. Every recommendation should tie back to the data provided.`;
 
 serve(async (req) => {
@@ -38,12 +40,14 @@ serve(async (req) => {
   }
 
   try {
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue } = await req.json();
+    const body = await req.json();
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, messages } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const userPrompt = `Here is the complete data package for analysis:
+    // Build the data context that's always prepended
+    const dataContext = `Here is the complete data package for analysis:
 
 **Current Snapshot:**
 ${JSON.stringify(snapshot, null, 2)}
@@ -64,9 +68,24 @@ ${JSON.stringify(annualMembers, null, 2)}
 ${JSON.stringify(dailyMetrics || [], null, 2)}
 
 **Monthly Revenue from Database:**
-${JSON.stringify(monthlyRevenue || [], null, 2)}
+${JSON.stringify(monthlyRevenue || [], null, 2)}`;
 
-Please analyze this data comprehensively and provide your strategic recommendations.`;
+    let aiMessages: Array<{ role: string; content: string }>;
+
+    if (messages && messages.length > 0) {
+      // Follow-up: system + data context as first user msg, then conversation history
+      aiMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: dataContext + "\n\nPlease analyze this data comprehensively and provide your strategic recommendations." },
+        ...messages,
+      ];
+    } else {
+      // Initial analysis
+      aiMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: dataContext + "\n\nPlease analyze this data comprehensively and provide your strategic recommendations." },
+      ];
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -76,10 +95,7 @@ Please analyze this data comprehensively and provide your strategic recommendati
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
+        messages: aiMessages,
         stream: true,
       }),
     });
