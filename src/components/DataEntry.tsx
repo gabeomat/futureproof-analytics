@@ -330,6 +330,10 @@ export function DataEntry() {
             <TrendingUp className="w-3.5 h-3.5" />
             Monthly Revenue
           </TabsTrigger>
+          <TabsTrigger value="acquisition" className="text-xs gap-1.5">
+            <Megaphone className="w-3.5 h-3.5" />
+            Acquisition
+          </TabsTrigger>
           <TabsTrigger value="csv" className="text-xs gap-1.5">
             <FileUp className="w-3.5 h-3.5" />
             CSV Upload
