@@ -8,7 +8,8 @@ import { DualMRRView } from "@/components/DualMRRView";
 import { ProjectionPlayground } from "@/components/ProjectionPlayground";
 import { DataEntry } from "@/components/DataEntry";
 import { AIInsights } from "@/components/AIInsights";
-import { currentSnapshot, formatCurrency, formatPercent } from "@/lib/data";
+import { formatCurrency, formatPercent } from "@/lib/data";
+import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 
 type Tab = "overview" | "projections" | "data-entry";
 
