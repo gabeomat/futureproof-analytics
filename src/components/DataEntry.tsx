@@ -29,6 +29,18 @@ interface MonthlyEntry {
   revenue_churn: number;
 }
 
+interface AcquisitionEntry {
+  id?: string;
+  date: string;
+  ad_spend: number;
+  ad_conv_27: number;
+  ad_conv_47: number;
+  ad_conv_333: number;
+  organic_27: number;
+  organic_47: number;
+  organic_333: number;
+}
+
 interface CSVUpload {
   fileName: string;
   uploadedAt: string;
