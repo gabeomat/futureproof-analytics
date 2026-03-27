@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send, History, Plus, Trash2, BookMarked } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2, BookMarked, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-metrics`;
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; imageUrls?: string[] };
 type Conversation = { id: string; title: string; messages: Msg[]; created_at: string; updated_at: string };
 type StrategyNote = { id: string; summary: string; created_at: string };
 
@@ -91,8 +91,43 @@ export function AIInsights() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [strategyNotes, setStrategyNotes] = useState<StrategyNote[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const assistantContentRef = useRef("");
+
+  const uploadImage = async (file: File) => {
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
+    if (error) {
+      toast.error("Failed to upload image");
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("chat-uploads").getPublicUrl(path);
+    setPendingImages((prev) => [...prev, { url: urlData.publicUrl, name: file.name }]);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`"${file.name}" is not an image file`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`"${file.name}" is too large (max 10 MB)`);
+        continue;
+      }
+      await uploadImage(file);
+    }
+    e.target.value = "";
+  };
+
+  const removePendingImage = (idx: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -252,11 +287,14 @@ export function AIInsights() {
 
   const sendFollowUp = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text && pendingImages.length === 0) return;
+    if (loading) return;
+    const imageUrls = pendingImages.map((p) => p.url);
     setInput("");
+    setPendingImages([]);
     setLoading(true);
 
-    const userMsg: Msg = { role: "user", content: text };
+    const userMsg: Msg = { role: "user", content: text || "Please analyze the attached image(s).", imageUrls: imageUrls.length > 0 ? imageUrls : undefined };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     assistantContentRef.current = "";
@@ -470,6 +508,13 @@ export function AIInsights() {
                     >
                       {msg.role === "user" ? (
                         <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2 max-w-[85%] text-sm">
+                          {msg.imageUrls && msg.imageUrls.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {msg.imageUrls.map((url, j) => (
+                                <img key={j} src={url} alt="Uploaded" className="rounded-lg max-h-40 max-w-full object-cover" />
+                              ))}
+                            </div>
+                          )}
                           {msg.content}
                         </div>
                       ) : (
@@ -487,18 +532,52 @@ export function AIInsights() {
               </ScrollArea>
 
               {messages.length > 0 && (
-                <div className="border-t p-4 flex gap-2">
-                  <Input
-                    placeholder="Ask a follow-up question…"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={loading}
-                    className="flex-1"
-                  />
-                  <Button size="icon" onClick={sendFollowUp} disabled={loading || !input.trim()}>
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </Button>
+                <div className="border-t p-4 space-y-2">
+                  {pendingImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {pendingImages.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={img.url} alt={img.name} className="h-16 w-16 rounded-lg object-cover border border-border" />
+                          <button
+                            onClick={() => removePendingImage(idx)}
+                            className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                      title="Attach image"
+                    >
+                      <ImagePlus className="w-4 h-4" />
+                    </Button>
+                    <Input
+                      placeholder="Ask a follow-up question…"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={loading}
+                      className="flex-1"
+                    />
+                    <Button size="icon" onClick={sendFollowUp} disabled={loading || (!input.trim() && pendingImages.length === 0)}>
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </Button>
+                  </div>
                 </div>
               )}
             </>

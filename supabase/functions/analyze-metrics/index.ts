@@ -32,6 +32,13 @@ Provide 5-7 specific, prioritized actions with expected impact on MRR.
 
 For follow-up questions, respond naturally and conversationally while still being data-driven and specific. Reference the data you have whenever relevant.
 
+When images are shared with you, analyze them thoroughly. If they are ad creatives, evaluate:
+- Visual design and attention-grabbing elements
+- Copy effectiveness and clarity of value proposition
+- Call-to-action strength
+- Target audience alignment
+- Suggestions for improvement based on the business data you have
+
 ### Strategic Memory Commands
 When the user says phrases like "save this", "summarize and save", "remember this", or "save this to memory", you should:
 1. Distill the key strategic insights, decisions, and recommendations from the conversation so far into a concise summary (200-500 words).
@@ -100,13 +107,32 @@ ${JSON.stringify(acquisitionData || [], null, 2)}`;
       dataContext += `\nUse these past notes for context. Reference how long ago decisions were made when relevant (e.g. "Back in March we decided to..."). Note if previous recommendations have likely played out by now or if it's too early to judge.`;
     }
 
-    let aiMessages: Array<{ role: string; content: string }>;
+    // Build messages for the AI, supporting multimodal content (text + images)
+    const buildContent = (msg: { role: string; content: string; imageUrls?: string[] }) => {
+      if (msg.imageUrls && msg.imageUrls.length > 0) {
+        // Multimodal message: text + images
+        const parts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+        if (msg.content) {
+          parts.push({ type: "text", text: msg.content });
+        }
+        for (const url of msg.imageUrls) {
+          parts.push({ type: "image_url", image_url: { url } });
+        }
+        return parts;
+      }
+      return msg.content;
+    };
+
+    let aiMessages: Array<{ role: string; content: unknown }>;
 
     if (messages && messages.length > 0) {
       aiMessages = [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: dataContext + "\n\nPlease analyze this data comprehensively and provide your strategic recommendations." },
-        ...messages,
+        ...messages.map((m: { role: string; content: string; imageUrls?: string[] }) => ({
+          role: m.role,
+          content: buildContent(m),
+        })),
       ];
     } else {
       aiMessages = [
