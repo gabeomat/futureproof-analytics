@@ -104,6 +104,35 @@ export type Database = {
         }
         Relationships: []
       }
+      strategy_notes: {
+        Row: {
+          created_at: string
+          id: string
+          source_conversation_id: string | null
+          summary: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_conversation_id?: string | null
+          summary: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_conversation_id?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_notes_source_conversation_id_fkey"
+            columns: ["source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
