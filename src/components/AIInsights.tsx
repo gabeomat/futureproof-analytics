@@ -364,7 +364,7 @@ export function AIInsights() {
 
   return (
     <>
-      <Button onClick={runInitialAnalysis} variant="outline" size="sm" className="gap-1.5">
+      <Button onClick={openPanel} variant="outline" size="sm" className="gap-1.5">
         <Brain className="w-4 h-4" />
         AI Insights
       </Button>
