@@ -508,6 +508,13 @@ export function AIInsights() {
                     >
                       {msg.role === "user" ? (
                         <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2 max-w-[85%] text-sm">
+                          {msg.imageUrls && msg.imageUrls.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {msg.imageUrls.map((url, j) => (
+                                <img key={j} src={url} alt="Uploaded" className="rounded-lg max-h-40 max-w-full object-cover" />
+                              ))}
+                            </div>
+                          )}
                           {msg.content}
                         </div>
                       ) : (
