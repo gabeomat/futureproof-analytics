@@ -7,6 +7,7 @@ import { MemberComposition } from "@/components/MemberComposition";
 import { DualMRRView } from "@/components/DualMRRView";
 import { ProjectionPlayground } from "@/components/ProjectionPlayground";
 import { DataEntry } from "@/components/DataEntry";
+import { AIInsights } from "@/components/AIInsights";
 import { currentSnapshot, formatCurrency, formatPercent } from "@/lib/data";
 
 type Tab = "overview" | "projections" | "data-entry";
