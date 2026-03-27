@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-metrics`;
 
 type Msg = { role: "user" | "assistant"; content: string };
+type Conversation = { id: string; title: string; messages: Msg[]; created_at: string; updated_at: string };
 
 async function streamResponse(
   body: Record<string, unknown>,
@@ -66,10 +67,14 @@ async function streamResponse(
 
 export function AIInsights() {
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<"chat" | "history">("chat");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [dataPayload, setDataPayload] = useState<Record<string, unknown> | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const assistantContentRef = useRef("");
 
@@ -99,14 +104,70 @@ export function AIInsights() {
     return payload;
   };
 
-  const runInitialAnalysis = async () => {
-    setOpen(true);
-    setLoading(true);
+  const saveConversation = async (msgs: Msg[], convId: string | null) => {
+    // Generate a title from the first assistant message (first 60 chars)
+    const firstAssistant = msgs.find((m) => m.role === "assistant");
+    const titleText = firstAssistant?.content?.slice(0, 80)?.replace(/[#*\n]/g, " ")?.trim() || "Analysis";
+    const title = titleText.length > 60 ? titleText.slice(0, 57) + "…" : titleText;
+
+    const messagesJson = JSON.parse(JSON.stringify(msgs));
+
+    if (convId) {
+      await supabase
+        .from("ai_conversations")
+        .update({ messages: messagesJson, title })
+        .eq("id", convId);
+      return convId;
+    } else {
+      const { data } = await supabase
+        .from("ai_conversations")
+        .insert([{ messages: messagesJson, title }])
+        .select("id")
+        .single();
+      const newId = data?.id || null;
+      setConversationId(newId);
+      return newId;
+    }
+  };
+
+  const loadConversations = async () => {
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from("ai_conversations")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    setConversations((data as unknown as Conversation[]) || []);
+    setLoadingHistory(false);
+  };
+
+  const openConversation = (conv: Conversation) => {
+    setMessages(conv.messages);
+    setConversationId(conv.id);
+    setView("chat");
+  };
+
+  const deleteConversation = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await supabase.from("ai_conversations").delete().eq("id", id);
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (conversationId === id) {
+      setMessages([]);
+      setConversationId(null);
+    }
+    toast.success("Conversation deleted");
+  };
+
+  const startNewAnalysis = async () => {
+    setView("chat");
     setMessages([]);
+    setConversationId(null);
+    setLoading(true);
     assistantContentRef.current = "";
 
     try {
       const payload = await fetchDataPayload();
+      let newConvId: string | null = null;
 
       await streamResponse(
         payload,
@@ -115,13 +176,23 @@ export function AIInsights() {
           const content = assistantContentRef.current;
           setMessages([{ role: "assistant", content }]);
         },
-        () => setLoading(false),
+        async () => {
+          setLoading(false);
+          const finalMsgs: Msg[] = [{ role: "assistant", content: assistantContentRef.current }];
+          setMessages(finalMsgs);
+          newConvId = await saveConversation(finalMsgs, null);
+        },
       );
     } catch (e: unknown) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Failed to run AI analysis");
       setLoading(false);
     }
+  };
+
+  const runInitialAnalysis = async () => {
+    setOpen(true);
+    await startNewAnalysis();
   };
 
   const sendFollowUp = async () => {
@@ -138,8 +209,6 @@ export function AIInsights() {
     try {
       const payload = dataPayload || (await fetchDataPayload());
 
-      // Send conversation history (skip the first assistant msg which was the initial analysis response)
-      // The edge function re-generates the initial data prompt, so we send all messages as context
       await streamResponse(
         { ...payload, messages: updatedMessages },
         (delta) => {
@@ -153,7 +222,12 @@ export function AIInsights() {
             return [...prev, { role: "assistant", content }];
           });
         },
-        () => setLoading(false),
+        async () => {
+          setLoading(false);
+          const finalMsgs = [...updatedMessages, { role: "assistant" as const, content: assistantContentRef.current }];
+          setMessages(finalMsgs);
+          await saveConversation(finalMsgs, conversationId);
+        },
       );
     } catch (e: unknown) {
       console.error(e);
@@ -167,6 +241,11 @@ export function AIInsights() {
       e.preventDefault();
       sendFollowUp();
     }
+  };
+
+  const showHistory = () => {
+    setView("history");
+    loadConversations();
   };
 
   return (
@@ -184,60 +263,132 @@ export function AIInsights() {
                 Strategic AI Analysis
               </SheetTitle>
               <SheetDescription>
-                Powered by deep reasoning AI — ask follow-up questions about your data
+                Powered by deep reasoning AI — conversations are saved for future reference
               </SheetDescription>
             </SheetHeader>
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant={view === "chat" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setView("chat")}
+                className="gap-1.5"
+              >
+                <Brain className="w-3.5 h-3.5" />
+                Chat
+              </Button>
+              <Button
+                variant={view === "history" ? "default" : "outline"}
+                size="sm"
+                onClick={showHistory}
+                className="gap-1.5"
+              >
+                <History className="w-3.5 h-3.5" />
+                History
+              </Button>
+              {view === "chat" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startNewAnalysis}
+                  disabled={loading}
+                  className="gap-1.5 ml-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Analysis
+                </Button>
+              )}
+            </div>
           </div>
 
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-4 py-4">
-              {messages.length === 0 && loading && (
-                <div className="flex items-center gap-2 text-muted-foreground py-8">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Analyzing your metrics…
-                </div>
-              )}
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={
-                    msg.role === "user"
-                      ? "flex justify-end"
-                      : ""
-                  }
-                >
-                  {msg.role === "user" ? (
-                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2 max-w-[85%] text-sm">
-                      {msg.content}
-                    </div>
-                  ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      {loading && i === messages.length - 1 && (
-                        <span className="inline-block w-2 h-4 bg-primary animate-pulse rounded-sm ml-0.5" />
-                      )}
+          {view === "history" ? (
+            <ScrollArea className="flex-1 px-6">
+              <div className="space-y-2 py-4">
+                {loadingHistory ? (
+                  <div className="flex items-center gap-2 text-muted-foreground py-8">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading conversations…
+                  </div>
+                ) : conversations.length === 0 ? (
+                  <p className="text-muted-foreground text-sm py-8 text-center">
+                    No saved conversations yet. Start a new analysis!
+                  </p>
+                ) : (
+                  conversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => openConversation(conv)}
+                      className="w-full text-left p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{conv.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(conv.created_at).toLocaleDateString()} · {conv.messages.length} messages
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={(e) => deleteConversation(conv.id, e)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          ) : (
+            <>
+              <ScrollArea className="flex-1 px-6">
+                <div className="space-y-4 py-4">
+                  {messages.length === 0 && loading && (
+                    <div className="flex items-center gap-2 text-muted-foreground py-8">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing your metrics…
                     </div>
                   )}
+                  {messages.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={msg.role === "user" ? "flex justify-end" : ""}
+                    >
+                      {msg.role === "user" ? (
+                        <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2 max-w-[85%] text-sm">
+                          {msg.content}
+                        </div>
+                      ) : (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          {loading && i === messages.length - 1 && (
+                            <span className="inline-block w-2 h-4 bg-primary animate-pulse rounded-sm ml-0.5" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={bottomRef} />
                 </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-          </ScrollArea>
+              </ScrollArea>
 
-          {messages.length > 0 && (
-            <div className="border-t p-4 flex gap-2">
-              <Input
-                placeholder="Ask a follow-up question…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-                className="flex-1"
-              />
-              <Button size="icon" onClick={sendFollowUp} disabled={loading || !input.trim()}>
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
+              {messages.length > 0 && (
+                <div className="border-t p-4 flex gap-2">
+                  <Input
+                    placeholder="Ask a follow-up question…"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button size="icon" onClick={sendFollowUp} disabled={loading || !input.trim()}>
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </SheetContent>
       </Sheet>
