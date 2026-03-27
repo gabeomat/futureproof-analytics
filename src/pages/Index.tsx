@@ -15,6 +15,7 @@ type Tab = "overview" | "projections" | "data-entry";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const currentSnapshot = useLiveMetrics();
 
   return (
     <div className="min-h-screen bg-background">

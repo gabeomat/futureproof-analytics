@@ -1,6 +1,8 @@
-import { currentSnapshot, formatCurrency } from "@/lib/data";
+import { formatCurrency } from "@/lib/data";
+import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 
 export function DualMRRView() {
+  const currentSnapshot = useLiveMetrics();
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <h3 className="font-display text-sm font-semibold text-foreground mb-1">MRR Comparison</h3>
