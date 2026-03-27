@@ -1,61 +1,46 @@
 
 
-## AI-Powered Insights Feature
+## Conversational AI Insights
 
-### What We're Building
+### What Changes
 
-An "AI Insights" button on the Overview tab that gathers all your data (daily metrics, monthly revenue, historical trends, member composition, churn rates) and sends it to an AI model for strategic business analysis — pricing recommendations, growth advice, churn observations, and actionable next steps.
+Turn the current one-shot AI analysis into a back-and-forth chat. The initial analysis stays as the first message, but you can then ask follow-up questions, drill into specific recommendations, or challenge assumptions.
 
 ### Architecture
 
 ```text
-[Overview Tab] → "Get AI Insights" button
-       ↓
-[Frontend] gathers data from DB + hardcoded data.ts
-       ↓
-[Edge Function: analyze-metrics] 
-  → builds rich prompt with all metrics
-  → calls Lovable AI (google/gemini-2.5-pro for deep reasoning)
-  → streams response back
-       ↓
-[Frontend] renders streamed markdown in a dialog/sheet
+Sheet opens → initial analysis streams as before (assistant msg #1)
+    ↓
+Chat input appears at bottom of sheet
+    ↓
+User types follow-up → full message history sent to edge function
+    ↓
+Edge function forwards conversation history to AI gateway
+    ↓
+Streamed reply appended as next assistant message
 ```
 
 ### Implementation Steps
 
-1. **Create edge function `supabase/functions/analyze-metrics/index.ts`**
-   - Accepts daily metrics, monthly revenue, and snapshot data in request body
-   - Builds a detailed system prompt positioning the AI as a SaaS/community revenue strategist
-   - Prompt includes instructions to analyze: MRR trajectory, churn patterns, pricing elasticity, LTV/CAC, member composition (legacy vs current), and provide concrete strategic recommendations
-   - Streams response via SSE using Lovable AI gateway with `google/gemini-2.5-pro` (best for complex reasoning)
-   - Handles 429/402 errors gracefully
+1. **Update edge function `analyze-metrics/index.ts`**
+   - Accept a `messages` array (full conversation history) in addition to the data payload
+   - On first call (no messages), build the data-rich user prompt as today
+   - On follow-up calls (messages provided), prepend the system prompt + data context, then append the full conversation history
+   - Still streams the response
 
-2. **Create `src/components/AIInsights.tsx`**
-   - "Get AI Insights" button with sparkle/brain icon
-   - On click: fetches latest daily_metrics and monthly_revenue from database, combines with `currentSnapshot` and `historicalRevenue` from data.ts
-   - Opens a Sheet/Dialog that streams the AI response token-by-token
-   - Renders response as markdown using `react-markdown`
-   - Shows loading state while streaming
-
-3. **Update `src/pages/Index.tsx`**
-   - Add the AIInsights component to the Overview tab header area (next to the tab buttons or as a prominent button in the metrics section)
-
-4. **Install `react-markdown`** dependency for rendering AI responses
-
-### What the AI Will Analyze
-
-The prompt will include all available data and ask for:
-- MRR growth trajectory analysis and sustainability
-- Churn rate assessment vs. industry benchmarks
-- Pricing strategy recommendation (raise, keep, tier changes) with specific numbers
-- Legacy member migration strategy
-- LTV/CAC ratio health check
-- 90-day action plan
+2. **Rewrite `AIInsights.tsx` as a chat interface**
+   - Replace single `content` string with a `messages[]` array (`{role, content}`)
+   - First click: fetch data, send to edge function, stream first assistant message into the array
+   - Show a text input + send button at the bottom of the sheet
+   - On send: append user message to array, call edge function with full history, stream new assistant response
+   - Each message rendered with `ReactMarkdown`, user messages styled differently
+   - Auto-scroll to bottom on new content
+   - Loading indicator on the latest assistant message while streaming
 
 ### Technical Details
 
-- Uses `LOVABLE_API_KEY` (already provisioned) — no user setup needed
-- Model: `google/gemini-2.5-pro` for strongest analytical reasoning
-- Streaming for responsive UX
-- No database changes needed — reads existing tables
+- Reuses existing edge function (just extended to accept conversation history)
+- System prompt + data context injected server-side on every call so the AI always has full business context
+- Model stays `google/gemini-2.5-pro` for deep reasoning
+- SSE streaming parsing logic stays the same, extracted into a reusable helper
 
