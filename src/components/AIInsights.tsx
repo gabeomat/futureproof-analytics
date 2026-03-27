@@ -91,8 +91,43 @@ export function AIInsights() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [strategyNotes, setStrategyNotes] = useState<StrategyNote[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const assistantContentRef = useRef("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const assistantContentRef.current = "";
+
+  const uploadImage = async (file: File) => {
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
+    if (error) {
+      toast.error("Failed to upload image");
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("chat-uploads").getPublicUrl(path);
+    setPendingImages((prev) => [...prev, { url: urlData.publicUrl, name: file.name }]);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`"${file.name}" is not an image file`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`"${file.name}" is too large (max 10 MB)`);
+        continue;
+      }
+      await uploadImage(file);
+    }
+    e.target.value = "";
+  };
+
+  const removePendingImage = (idx: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
