@@ -280,9 +280,24 @@ export function AIInsights() {
     }
   };
 
-  const runInitialAnalysis = async () => {
+  const openPanel = async () => {
     setOpen(true);
-    await startNewAnalysis();
+    // If we already have messages loaded, just show them
+    if (messages.length > 0) return;
+    // Try to load the most recent conversation
+    const { data } = await supabase
+      .from("ai_conversations")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const recent = (data as unknown as Conversation[] | null)?.[0];
+    if (recent) {
+      setMessages(recent.messages);
+      setConversationId(recent.id);
+      await fetchDataPayload();
+    } else {
+      await startNewAnalysis();
+    }
   };
 
   const sendFollowUp = async () => {
@@ -349,7 +364,7 @@ export function AIInsights() {
 
   return (
     <>
-      <Button onClick={runInitialAnalysis} variant="outline" size="sm" className="gap-1.5">
+      <Button onClick={openPanel} variant="outline" size="sm" className="gap-1.5">
         <Brain className="w-4 h-4" />
         AI Insights
       </Button>
