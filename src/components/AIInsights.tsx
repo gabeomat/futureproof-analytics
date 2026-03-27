@@ -94,7 +94,7 @@ export function AIInsights() {
   const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const assistantContentRef.current = "";
+  const assistantContentRef = useRef("");
 
   const uploadImage = async (file: File) => {
     const ext = file.name.split(".").pop() || "png";
