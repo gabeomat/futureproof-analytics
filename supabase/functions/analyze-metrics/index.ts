@@ -80,7 +80,11 @@ ${JSON.stringify(annualMembers, null, 2)}
 ${JSON.stringify(dailyMetrics || [], null, 2)}
 
 **Monthly Revenue from Database:**
-${JSON.stringify(monthlyRevenue || [], null, 2)}`;
+${JSON.stringify(monthlyRevenue || [], null, 2)}
+
+**Daily Acquisition Data (Ad Spend, Ad Conversions by tier, Organic sign-ups by tier):**
+Price tiers: $27/mo, $47/mo, $333/yr (annual = $27.75/mo MRR equivalent)
+${JSON.stringify(acquisitionData || [], null, 2)}`;
 
     // Inject past strategy notes with dates
     if (strategyNotes && strategyNotes.length > 0) {
