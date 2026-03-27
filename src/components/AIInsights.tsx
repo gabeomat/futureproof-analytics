@@ -110,16 +110,18 @@ export function AIInsights() {
     const titleText = firstAssistant?.content?.slice(0, 80)?.replace(/[#*\n]/g, " ")?.trim() || "Analysis";
     const title = titleText.length > 60 ? titleText.slice(0, 57) + "…" : titleText;
 
+    const messagesJson = JSON.parse(JSON.stringify(msgs));
+
     if (convId) {
       await supabase
         .from("ai_conversations")
-        .update({ messages: msgs as unknown as Record<string, unknown>[], title })
+        .update({ messages: messagesJson, title })
         .eq("id", convId);
       return convId;
     } else {
       const { data } = await supabase
         .from("ai_conversations")
-        .insert({ messages: msgs as unknown as Record<string, unknown>[], title })
+        .insert([{ messages: messagesJson, title }])
         .select("id")
         .single();
       const newId = data?.id || null;
