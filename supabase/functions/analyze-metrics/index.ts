@@ -53,7 +53,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, messages, strategyNotes } = body;
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, messages, strategyNotes } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -80,7 +80,11 @@ ${JSON.stringify(annualMembers, null, 2)}
 ${JSON.stringify(dailyMetrics || [], null, 2)}
 
 **Monthly Revenue from Database:**
-${JSON.stringify(monthlyRevenue || [], null, 2)}`;
+${JSON.stringify(monthlyRevenue || [], null, 2)}
+
+**Daily Acquisition Data (Ad Spend, Ad Conversions by tier, Organic sign-ups by tier):**
+Price tiers: $27/mo, $47/mo, $333/yr (annual = $27.75/mo MRR equivalent)
+${JSON.stringify(acquisitionData || [], null, 2)}`;
 
     // Inject past strategy notes with dates
     if (strategyNotes && strategyNotes.length > 0) {

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2 } from "lucide-react";
+import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone } from "lucide-react";
 import { formatCurrency } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,18 @@ interface MonthlyEntry {
   month: string;
   new_revenue: number;
   revenue_churn: number;
+}
+
+interface AcquisitionEntry {
+  id?: string;
+  date: string;
+  ad_spend: number;
+  ad_conv_27: number;
+  ad_conv_47: number;
+  ad_conv_333: number;
+  organic_27: number;
+  organic_47: number;
+  organic_333: number;
 }
 
 interface CSVUpload {
@@ -52,6 +64,7 @@ const DAILY_FIELDS: { key: keyof Omit<DailyEntry, "date" | "id">; label: string;
 
 const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_page_traffic: 0, discovery_rank: 0, profile_activity: 0, group_activity: 0 };
 const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
+const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
 
 // --- Component ---
 
@@ -73,6 +86,13 @@ export function DataEntry() {
   const [monthlyLoading, setMonthlyLoading] = useState(true);
   const [monthlySaving, setMonthlySaving] = useState(false);
 
+  // Acquisition state
+  const [acqEntries, setAcqEntries] = useState<AcquisitionEntry[]>([]);
+  const [acqDraft, setAcqDraft] = useState<AcquisitionEntry>({ ...EMPTY_ACQ });
+  const [showAcqForm, setShowAcqForm] = useState(false);
+  const [acqLoading, setAcqLoading] = useState(true);
+  const [acqSaving, setAcqSaving] = useState(false);
+
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
 
@@ -80,6 +100,7 @@ export function DataEntry() {
   useEffect(() => {
     loadDaily();
     loadMonthly();
+    loadAcquisitions();
   }, []);
 
   const loadDaily = async () => {
@@ -196,6 +217,62 @@ export function DataEntry() {
     }
   };
 
+  // --- Acquisition handlers ---
+  const loadAcquisitions = async () => {
+    setAcqLoading(true);
+    const { data, error } = await supabase
+      .from("daily_acquisitions")
+      .select("*")
+      .order("date", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load acquisitions", description: error.message, variant: "destructive" });
+    } else {
+      setAcqEntries((data as unknown as AcquisitionEntry[]) || []);
+    }
+    setAcqLoading(false);
+  };
+
+  const updateAcq = (field: keyof AcquisitionEntry, value: string) => {
+    if (field === "date") {
+      setAcqDraft((d) => ({ ...d, date: value }));
+    } else if (field !== "id") {
+      const num = value === "" ? 0 : Number(value);
+      if (value !== "" && isNaN(num)) return;
+      setAcqDraft((d) => ({ ...d, [field]: num }));
+    }
+  };
+
+  const addAcquisition = async () => {
+    if (!acqDraft.date) {
+      toast({ title: "Date required", variant: "destructive" });
+      return;
+    }
+    setAcqSaving(true);
+    const { id, ...payload } = acqDraft;
+    const { error } = await supabase
+      .from("daily_acquisitions")
+      .upsert(payload as any, { onConflict: "date" });
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Acquisition entry saved" });
+      setAcqDraft({ ...EMPTY_ACQ, date: todayStr() });
+      setShowAcqForm(false);
+      await loadAcquisitions();
+    }
+    setAcqSaving(false);
+  };
+
+  const removeAcq = async (entry: AcquisitionEntry) => {
+    if (!entry.id) return;
+    const { error } = await supabase.from("daily_acquisitions").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+    } else {
+      setAcqEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
+  };
+
   // --- CSV handlers ---
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -252,6 +329,10 @@ export function DataEntry() {
           <TabsTrigger value="monthly" className="text-xs gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
             Monthly Revenue
+          </TabsTrigger>
+          <TabsTrigger value="acquisition" className="text-xs gap-1.5">
+            <Megaphone className="w-3.5 h-3.5" />
+            Acquisition
           </TabsTrigger>
           <TabsTrigger value="csv" className="text-xs gap-1.5">
             <FileUp className="w-3.5 h-3.5" />
@@ -500,6 +581,164 @@ export function DataEntry() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ========== ACQUISITION TAB ========== */}
+        <TabsContent value="acquisition" className="space-y-4 mt-4">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground font-display">Daily Acquisition Tracking</CardTitle>
+                {!showAcqForm && (
+                  <Button size="sm" onClick={() => setShowAcqForm(true)} className="text-xs">
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />Add Entry
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showAcqForm && (
+                <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Date</label>
+                      <Input type="date" value={acqDraft.date} onChange={(e) => updateAcq("date", e.target.value)} className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Ad Spend ($)</label>
+                      <Input type="number" value={acqDraft.ad_spend || ""} onChange={(e) => updateAcq("ad_spend", e.target.value)} placeholder="50" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Ad Conversions</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <Input type="number" min="0" value={acqDraft.ad_conv_27 || ""} onChange={(e) => updateAcq("ad_conv_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <Input type="number" min="0" value={acqDraft.ad_conv_47 || ""} onChange={(e) => updateAcq("ad_conv_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <Input type="number" min="0" value={acqDraft.ad_conv_333 || ""} onChange={(e) => updateAcq("ad_conv_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Organic Sign-ups</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <Input type="number" min="0" value={acqDraft.organic_27 || ""} onChange={(e) => updateAcq("organic_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <Input type="number" min="0" value={acqDraft.organic_47 || ""} onChange={(e) => updateAcq("organic_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <Input type="number" min="0" value={acqDraft.organic_333 || ""} onChange={(e) => updateAcq("organic_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={addAcquisition} disabled={acqSaving} className="text-xs">
+                      {acqSaving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}Save Entry
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setShowAcqForm(false); setAcqDraft({ ...EMPTY_ACQ, date: todayStr() }); }} className="text-xs">Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              {acqLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <span className="text-sm">Loading acquisition data...</span>
+                </div>
+              ) : acqEntries.length === 0 && !showAcqForm ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Megaphone className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No acquisition entries yet</p>
+                  <p className="text-xs mt-1">Track your daily ad spend and conversions by price tier</p>
+                </div>
+              ) : acqEntries.length > 0 && (
+                <div className="rounded-md border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-secondary/50">
+                        <TableHead className="text-[10px] font-mono">Date</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Ad Spend</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Ad $27</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Ad $47</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Ad $333</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Org $27</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Org $47</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Org $333</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">CPA</TableHead>
+                        <TableHead className="w-8"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {acqEntries.map((entry, i) => {
+                        const totalAdConv = entry.ad_conv_27 + entry.ad_conv_47 + entry.ad_conv_333;
+                        const cpa = totalAdConv > 0 ? entry.ad_spend / totalAdConv : 0;
+                        return (
+                          <TableRow key={entry.id || i} className="group">
+                            <TableCell className="text-xs font-medium text-foreground font-mono">{entry.date}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{formatCurrency(entry.ad_spend)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_27}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_47}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_333}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_27}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_47}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_333}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-primary font-semibold">{totalAdConv > 0 ? formatCurrency(cpa) : "—"}</TableCell>
+                            <TableCell>
+                              <button onClick={() => removeAcq(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Acquisition summary cards */}
+          {acqEntries.length > 0 && (() => {
+            const totalSpend = acqEntries.reduce((s, e) => s + Number(e.ad_spend), 0);
+            const totalAdConv = acqEntries.reduce((s, e) => s + e.ad_conv_27 + e.ad_conv_47 + e.ad_conv_333, 0);
+            const totalOrganic = acqEntries.reduce((s, e) => s + e.organic_27 + e.organic_47 + e.organic_333, 0);
+            const totalAll = totalAdConv + totalOrganic;
+            const avgCpa = totalAdConv > 0 ? totalSpend / totalAdConv : 0;
+            const adMrrAdded = acqEntries.reduce((s, e) => s + e.ad_conv_27 * 27 + e.ad_conv_47 * 47 + e.ad_conv_333 * (333 / 12), 0);
+            const roas = totalSpend > 0 ? adMrrAdded / totalSpend : 0;
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {[
+                  { label: "Total Ad Spend", value: formatCurrency(totalSpend), color: "text-foreground" },
+                  { label: "Ad Conversions", value: String(totalAdConv), color: "text-primary" },
+                  { label: "Organic Sign-ups", value: String(totalOrganic), color: "text-primary" },
+                  { label: "Avg CPA", value: avgCpa > 0 ? formatCurrency(avgCpa) : "—", color: "text-foreground" },
+                  { label: "ROAS (MRR/Spend)", value: totalSpend > 0 ? `${roas.toFixed(2)}x` : "—", color: roas >= 1 ? "text-primary" : "text-destructive" },
+                  { label: "Ad vs Organic", value: totalAll > 0 ? `${Math.round((totalAdConv / totalAll) * 100)}% / ${Math.round((totalOrganic / totalAll) * 100)}%` : "—", color: "text-foreground" },
+                ].map((stat) => (
+                  <Card key={stat.label} className="bg-card border-border">
+                    <CardContent className="p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+                      <p className={`text-lg font-bold font-mono mt-1 ${stat.color}`}>{stat.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         {/* ========== CSV TAB ========== */}

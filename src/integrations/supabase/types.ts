@@ -38,6 +38,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_acquisitions: {
+        Row: {
+          ad_conv_27: number
+          ad_conv_333: number
+          ad_conv_47: number
+          ad_spend: number
+          created_at: string
+          date: string
+          id: string
+          organic_27: number
+          organic_333: number
+          organic_47: number
+        }
+        Insert: {
+          ad_conv_27?: number
+          ad_conv_333?: number
+          ad_conv_47?: number
+          ad_spend?: number
+          created_at?: string
+          date: string
+          id?: string
+          organic_27?: number
+          organic_333?: number
+          organic_47?: number
+        }
+        Update: {
+          ad_conv_27?: number
+          ad_conv_333?: number
+          ad_conv_47?: number
+          ad_spend?: number
+          created_at?: string
+          date?: string
+          id?: string
+          organic_27?: number
+          organic_333?: number
+          organic_47?: number
+        }
+        Relationships: []
+      }
       daily_metrics: {
         Row: {
           about_page_traffic: number

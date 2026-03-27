@@ -113,9 +113,10 @@ export function AIInsights() {
   };
 
   const fetchDataPayload = async () => {
-    const [{ data: dailyMetrics }, { data: monthlyRevenue }, notes] = await Promise.all([
+    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, notes] = await Promise.all([
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("monthly_revenue").select("*").order("month", { ascending: false }).limit(12),
+      supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).limit(60),
       fetchStrategyNotes(),
     ]);
     const payload = {
@@ -126,6 +127,7 @@ export function AIInsights() {
       annualMembers,
       dailyMetrics,
       monthlyRevenue,
+      acquisitionData,
       strategyNotes: notes,
     };
     setDataPayload(payload);
