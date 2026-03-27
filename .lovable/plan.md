@@ -1,46 +1,47 @@
 
 
-## Conversational AI Insights
+## Smart Strategic Memory with Dated Summaries
 
-### What Changes
+### What We're Building
 
-Turn the current one-shot AI analysis into a back-and-forth chat. The initial analysis stays as the first message, but you can then ask follow-up questions, drill into specific recommendations, or challenge assumptions.
+A "Strategic Memory" system where the AI distills and saves key insights on command, tagged with dates so future analyses know how recent each insight is. This replaces bloated full-conversation context with concise, timestamped notes.
 
-### Architecture
+### How It Works
 
 ```text
-Sheet opens → initial analysis streams as before (assistant msg #1)
+User says "save this" / "summarize and save" during chat
     ↓
-Chat input appears at bottom of sheet
+AI produces a concise summary wrapped in :::SAVE_SUMMARY::: markers
     ↓
-User types follow-up → full message history sent to edge function
+Frontend extracts summary, saves to strategy_notes with timestamp
     ↓
-Edge function forwards conversation history to AI gateway
-    ↓
-Streamed reply appended as next assistant message
+Future analyses: all strategy_notes loaded with dates
+    → injected as "Strategic Memory (saved March 27, 2026): ..."
+    → AI references past decisions with temporal awareness
 ```
 
 ### Implementation Steps
 
-1. **Update edge function `analyze-metrics/index.ts`**
-   - Accept a `messages` array (full conversation history) in addition to the data payload
-   - On first call (no messages), build the data-rich user prompt as today
-   - On follow-up calls (messages provided), prepend the system prompt + data context, then append the full conversation history
-   - Still streams the response
+1. **Create `strategy_notes` table**
+   - Columns: `id` (uuid), `summary` (text), `source_conversation_id` (nullable uuid ref to ai_conversations), `created_at` (timestamptz)
+   - Open RLS policy (matches existing tables)
 
-2. **Rewrite `AIInsights.tsx` as a chat interface**
-   - Replace single `content` string with a `messages[]` array (`{role, content}`)
-   - First click: fetch data, send to edge function, stream first assistant message into the array
-   - Show a text input + send button at the bottom of the sheet
-   - On send: append user message to array, call edge function with full history, stream new assistant response
-   - Each message rendered with `ReactMarkdown`, user messages styled differently
-   - Auto-scroll to bottom on new content
-   - Loading indicator on the latest assistant message while streaming
+2. **Update edge function `analyze-metrics/index.ts`**
+   - Add to system prompt: instructions to recognize "save this", "summarize and save", "remember this" triggers
+   - When triggered, AI wraps its distilled summary in `:::SAVE_SUMMARY:::` markers
+   - Accept `strategyNotes` array in the request body
+   - Inject past notes into data context with formatted dates: `"Strategy Note (March 27, 2026): ..."`
+
+3. **Update `AIInsights.tsx`**
+   - On initial analysis and follow-ups, fetch all `strategy_notes` ordered by `created_at` and include in payload as `strategyNotes`
+   - After each streamed response, check for `:::SAVE_SUMMARY:::` markers
+   - If found: extract summary text, insert into `strategy_notes` with `source_conversation_id`, show toast confirmation, render the summary portion cleanly (strip markers)
+   - Add a small "Saved Notes" indicator or section in the History view so users can see what's been memorized
 
 ### Technical Details
 
-- Reuses existing edge function (just extended to accept conversation history)
-- System prompt + data context injected server-side on every call so the AI always has full business context
-- Model stays `google/gemini-2.5-pro` for deep reasoning
-- SSE streaming parsing logic stays the same, extracted into a reusable helper
+- Dates formatted as human-readable strings in the AI context (e.g., "March 27, 2026") so the AI can reason about recency ("3 months ago we decided to raise prices...")
+- `created_at` uses default `now()` — no manual date input needed
+- Strategy notes are compact (~200-500 words each) vs full conversations (5000+ words)
+- No new edge functions — extends existing `analyze-metrics`
 
