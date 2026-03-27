@@ -217,6 +217,62 @@ export function DataEntry() {
     }
   };
 
+  // --- Acquisition handlers ---
+  const loadAcquisitions = async () => {
+    setAcqLoading(true);
+    const { data, error } = await supabase
+      .from("daily_acquisitions")
+      .select("*")
+      .order("date", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load acquisitions", description: error.message, variant: "destructive" });
+    } else {
+      setAcqEntries((data as unknown as AcquisitionEntry[]) || []);
+    }
+    setAcqLoading(false);
+  };
+
+  const updateAcq = (field: keyof AcquisitionEntry, value: string) => {
+    if (field === "date") {
+      setAcqDraft((d) => ({ ...d, date: value }));
+    } else if (field !== "id") {
+      const num = value === "" ? 0 : Number(value);
+      if (value !== "" && isNaN(num)) return;
+      setAcqDraft((d) => ({ ...d, [field]: num }));
+    }
+  };
+
+  const addAcquisition = async () => {
+    if (!acqDraft.date) {
+      toast({ title: "Date required", variant: "destructive" });
+      return;
+    }
+    setAcqSaving(true);
+    const { id, ...payload } = acqDraft;
+    const { error } = await supabase
+      .from("daily_acquisitions")
+      .upsert(payload as any, { onConflict: "date" });
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Acquisition entry saved" });
+      setAcqDraft({ ...EMPTY_ACQ, date: todayStr() });
+      setShowAcqForm(false);
+      await loadAcquisitions();
+    }
+    setAcqSaving(false);
+  };
+
+  const removeAcq = async (entry: AcquisitionEntry) => {
+    if (!entry.id) return;
+    const { error } = await supabase.from("daily_acquisitions").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+    } else {
+      setAcqEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
+  };
+
   // --- CSV handlers ---
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
