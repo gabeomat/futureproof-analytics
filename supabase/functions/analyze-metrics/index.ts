@@ -32,6 +32,18 @@ Provide 5-7 specific, prioritized actions with expected impact on MRR.
 
 For follow-up questions, respond naturally and conversationally while still being data-driven and specific. Reference the data you have whenever relevant.
 
+### Strategic Memory Commands
+When the user says phrases like "save this", "summarize and save", "remember this", or "save this to memory", you should:
+1. Distill the key strategic insights, decisions, and recommendations from the conversation so far into a concise summary (200-500 words).
+2. Wrap your summary in special markers so the system can save it automatically.
+3. Format your response like this:
+
+:::SAVE_SUMMARY:::
+[Your concise summary of key strategic insights, decisions, data points, and action items from this conversation]
+:::END_SUMMARY:::
+
+After the markers, confirm to the user that the strategic note has been saved and briefly list what was captured.
+
 Be direct, specific, and use actual numbers from the data. Avoid generic advice. Every recommendation should tie back to the data provided.`;
 
 serve(async (req) => {
@@ -41,13 +53,13 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, messages } = body;
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, messages, strategyNotes } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     // Build the data context that's always prepended
-    const dataContext = `Here is the complete data package for analysis:
+    let dataContext = `Here is the complete data package for analysis:
 
 **Current Snapshot:**
 ${JSON.stringify(snapshot, null, 2)}
@@ -70,17 +82,29 @@ ${JSON.stringify(dailyMetrics || [], null, 2)}
 **Monthly Revenue from Database:**
 ${JSON.stringify(monthlyRevenue || [], null, 2)}`;
 
+    // Inject past strategy notes with dates
+    if (strategyNotes && strategyNotes.length > 0) {
+      dataContext += `\n\n**Previous Strategic Memory (saved insights from past sessions):**\n`;
+      for (const note of strategyNotes) {
+        const date = new Date(note.created_at).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        dataContext += `\n--- Strategy Note (saved ${date}) ---\n${note.summary}\n`;
+      }
+      dataContext += `\nUse these past notes for context. Reference how long ago decisions were made when relevant (e.g. "Back in March we decided to..."). Note if previous recommendations have likely played out by now or if it's too early to judge.`;
+    }
+
     let aiMessages: Array<{ role: string; content: string }>;
 
     if (messages && messages.length > 0) {
-      // Follow-up: system + data context as first user msg, then conversation history
       aiMessages = [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: dataContext + "\n\nPlease analyze this data comprehensively and provide your strategic recommendations." },
         ...messages,
       ];
     } else {
-      // Initial analysis
       aiMessages = [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: dataContext + "\n\nPlease analyze this data comprehensively and provide your strategic recommendations." },
