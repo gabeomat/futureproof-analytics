@@ -287,11 +287,14 @@ export function AIInsights() {
 
   const sendFollowUp = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text && pendingImages.length === 0) return;
+    if (loading) return;
+    const imageUrls = pendingImages.map((p) => p.url);
     setInput("");
+    setPendingImages([]);
     setLoading(true);
 
-    const userMsg: Msg = { role: "user", content: text };
+    const userMsg: Msg = { role: "user", content: text || "Please analyze the attached image(s).", imageUrls: imageUrls.length > 0 ? imageUrls : undefined };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     assistantContentRef.current = "";
