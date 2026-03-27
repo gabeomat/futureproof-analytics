@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-metrics`;
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; imageUrls?: string[] };
 type Conversation = { id: string; title: string; messages: Msg[]; created_at: string; updated_at: string };
 type StrategyNote = { id: string; summary: string; created_at: string };
 
