@@ -532,18 +532,52 @@ export function AIInsights() {
               </ScrollArea>
 
               {messages.length > 0 && (
-                <div className="border-t p-4 flex gap-2">
-                  <Input
-                    placeholder="Ask a follow-up question…"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={loading}
-                    className="flex-1"
-                  />
-                  <Button size="icon" onClick={sendFollowUp} disabled={loading || !input.trim()}>
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </Button>
+                <div className="border-t p-4 space-y-2">
+                  {pendingImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {pendingImages.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={img.url} alt={img.name} className="h-16 w-16 rounded-lg object-cover border border-border" />
+                          <button
+                            onClick={() => removePendingImage(idx)}
+                            className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                      title="Attach image"
+                    >
+                      <ImagePlus className="w-4 h-4" />
+                    </Button>
+                    <Input
+                      placeholder="Ask a follow-up question…"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={loading}
+                      className="flex-1"
+                    />
+                    <Button size="icon" onClick={sendFollowUp} disabled={loading || (!input.trim() && pendingImages.length === 0)}>
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </Button>
+                  </div>
                 </div>
               )}
             </>
