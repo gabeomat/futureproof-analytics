@@ -7,6 +7,7 @@ import { MemberComposition } from "@/components/MemberComposition";
 import { DualMRRView } from "@/components/DualMRRView";
 import { ProjectionPlayground } from "@/components/ProjectionPlayground";
 import { DataEntry } from "@/components/DataEntry";
+import { AIInsights } from "@/components/AIInsights";
 import { currentSnapshot, formatCurrency, formatPercent } from "@/lib/data";
 
 type Tab = "overview" | "projections" | "data-entry";
@@ -20,11 +21,14 @@ const Index = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-xl font-bold text-foreground tracking-tight">
-                Futureproof<span className="text-primary"> Analytics</span>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">The Evolution Lab · MRR & Growth Intelligence</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="font-display text-xl font-bold text-foreground tracking-tight">
+                  Futureproof<span className="text-primary"> Analytics</span>
+                </h1>
+                <p className="text-xs text-muted-foreground mt-0.5">The Evolution Lab · MRR & Growth Intelligence</p>
+              </div>
+              <AIInsights />
             </div>
             <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
               <button
