@@ -298,9 +298,6 @@ export function DataEntry() {
         const ac27Idx = headers.findIndex((h) => h === "t27");
         const ac47Idx = headers.findIndex((h) => h === "t47");
         const ac333Idx = headers.findIndex((h) => h === "t333");
-        const o27Idx = headers.findIndex((h) => h === "organic_27");
-        const o47Idx = headers.findIndex((h) => h === "organic_47");
-        const o333Idx = headers.findIndex((h) => h === "organic_333");
 
         if (dateIdx === -1) {
           toast({ title: "Missing 'date' column", description: "CSV must have a 'date' column.", variant: "destructive" });
