@@ -83,10 +83,9 @@ export function useLiveMetrics() {
     liveSnapshot.annualizedContribution = currentSnapshot.annualizedContribution + acquisitionTotals.totalNewAnnualMRR;
 
     // Replace hardcoded monthlyAdSpend with rolling 30-day real data
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    // acquisitionTotals uses ALL data; we need to recalculate for just last 30 days
-    // We'll use a separate query result for this
+    if (acquisitionTotals.rolling30AdSpend > 0) {
+      liveSnapshot.monthlyAdSpend = acquisitionTotals.rolling30AdSpend;
+    }
   }
 
   // Recalculate derived metrics

@@ -154,8 +154,25 @@ export function AIInsights() {
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).limit(60),
       fetchStrategyNotes(),
     ]);
+    // Compute real rolling 30-day ad spend from acquisition data
+    let rolling30AdSpend = 0;
+    if (acquisitionData && acquisitionData.length > 0) {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      for (const row of acquisitionData) {
+        if (row.date >= thirtyDaysAgo) {
+          rolling30AdSpend += Number(row.ad_spend);
+        }
+      }
+    }
+
+    const snapshotOverride = {
+      ...currentSnapshot,
+      ...(rolling30AdSpend > 0 ? { monthlyAdSpend: rolling30AdSpend } : {}),
+    };
+
     const payload = {
-      snapshot: currentSnapshot,
+      snapshot: snapshotOverride,
       historicalRevenue,
       churnData: historicalChurn,
       monthlyMembers,
