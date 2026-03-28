@@ -68,6 +68,15 @@ const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_pa
 const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
 const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
 
+interface ChurnEntry {
+  id?: string;
+  date: string;
+  price_point: number;
+  notes: string;
+}
+
+const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "" };
+
 // --- Component ---
 
 export function DataEntry() {
