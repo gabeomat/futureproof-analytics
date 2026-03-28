@@ -30,6 +30,10 @@ export function useLiveMetrics() {
       let totalAdConv27 = 0, totalAdConv47 = 0, totalAdConv333 = 0;
       let totalOrganic27 = 0, totalOrganic47 = 0, totalOrganic333 = 0;
       let totalAdSpend = 0;
+      let rolling30AdSpend = 0;
+
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
       for (const row of data) {
         totalAdConv27 += row.ad_conv_27;
@@ -39,6 +43,9 @@ export function useLiveMetrics() {
         totalOrganic47 += row.organic_47;
         totalOrganic333 += row.organic_333;
         totalAdSpend += Number(row.ad_spend);
+        if (row.date >= thirtyDaysAgo) {
+          rolling30AdSpend += Number(row.ad_spend);
+        }
       }
 
       const totalNewMonthly = totalAdConv27 + totalAdConv47 + totalOrganic27 + totalOrganic47;
@@ -52,6 +59,7 @@ export function useLiveMetrics() {
         totalNewMRR,
         totalNewAnnualMRR,
         totalAdSpend,
+        rolling30AdSpend,
         totalConversions: totalNewMonthly + totalNewAnnual,
       };
     },
