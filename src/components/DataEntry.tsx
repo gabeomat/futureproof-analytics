@@ -717,20 +717,10 @@ export function DataEntry() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Organic Sign-ups</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
-                        <Input type="number" min="0" value={acqDraft.organic_27 || ""} onChange={(e) => updateAcq("organic_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
-                        <Input type="number" min="0" value={acqDraft.organic_47 || ""} onChange={(e) => updateAcq("organic_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
-                        <Input type="number" min="0" value={acqDraft.organic_333 || ""} onChange={(e) => updateAcq("organic_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
-                      </div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Revenue</p>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Total Revenue ($)</label>
+                      <Input type="number" min="0" value={acqDraft.revenue || ""} onChange={(e) => updateAcq("revenue", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                     </div>
                   </div>
                   <div className="flex gap-2">
