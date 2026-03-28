@@ -312,9 +312,9 @@ export function DataEntry() {
           ad_conv_27: ac27Idx >= 0 ? Number(r[ac27Idx]) || 0 : 0,
           ad_conv_47: ac47Idx >= 0 ? Number(r[ac47Idx]) || 0 : 0,
           ad_conv_333: ac333Idx >= 0 ? Number(r[ac333Idx]) || 0 : 0,
-          organic_27: o27Idx >= 0 ? Number(r[o27Idx]) || 0 : 0,
-          organic_47: o47Idx >= 0 ? Number(r[o47Idx]) || 0 : 0,
-          organic_333: o333Idx >= 0 ? Number(r[o333Idx]) || 0 : 0,
+          organic_27: 0,
+          organic_47: 0,
+          organic_333: 0,
         }));
 
         if (records.length === 0) {
