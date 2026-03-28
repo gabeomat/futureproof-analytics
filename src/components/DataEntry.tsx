@@ -750,12 +750,10 @@ export function DataEntry() {
                       <TableRow className="bg-secondary/50">
                         <TableHead className="text-[10px] font-mono">Date</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad Spend</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Revenue</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $27</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $47</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $333</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Org $27</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Org $47</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Org $333</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">CPA</TableHead>
                         <TableHead className="w-8"></TableHead>
                       </TableRow>
