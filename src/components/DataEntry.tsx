@@ -92,6 +92,8 @@ export function DataEntry() {
   const [showAcqForm, setShowAcqForm] = useState(false);
   const [acqLoading, setAcqLoading] = useState(true);
   const [acqSaving, setAcqSaving] = useState(false);
+  const [acqCsvImporting, setAcqCsvImporting] = useState(false);
+  const acqCsvInputRef = useRef<HTMLInputElement>(null);
 
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
@@ -271,6 +273,81 @@ export function DataEntry() {
     } else {
       setAcqEntries((prev) => prev.filter((e) => e.id !== entry.id));
     }
+  };
+
+  // --- Acquisition CSV Import ---
+  const handleAcqCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAcqCsvImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter((l) => l.trim());
+        if (lines.length < 2) {
+          toast({ title: "Invalid CSV", description: "File must have headers and at least one data row.", variant: "destructive" });
+          setAcqCsvImporting(false);
+          return;
+        }
+        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase());
+
+        const dateIdx = headers.findIndex((h) => h === "date");
+        const spendIdx = headers.findIndex((h) => h.includes("ad_spend") || h.includes("spend"));
+        const ac27Idx = headers.findIndex((h) => h.includes("ad_conv_27") || h === "ad_27");
+        const ac47Idx = headers.findIndex((h) => h.includes("ad_conv_47") || h === "ad_47");
+        const ac333Idx = headers.findIndex((h) => h.includes("ad_conv_333") || h === "ad_333");
+        const o27Idx = headers.findIndex((h) => h.includes("organic_27") || h === "org_27");
+        const o47Idx = headers.findIndex((h) => h.includes("organic_47") || h === "org_47");
+        const o333Idx = headers.findIndex((h) => h.includes("organic_333") || h === "org_333");
+
+        if (dateIdx === -1) {
+          toast({ title: "Missing 'date' column", description: "CSV must have a 'date' column.", variant: "destructive" });
+          setAcqCsvImporting(false);
+          return;
+        }
+
+        const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
+        const records = rows.filter((r) => r[dateIdx]).map((r) => ({
+          date: r[dateIdx],
+          ad_spend: spendIdx >= 0 ? Number(r[spendIdx]) || 0 : 0,
+          ad_conv_27: ac27Idx >= 0 ? Number(r[ac27Idx]) || 0 : 0,
+          ad_conv_47: ac47Idx >= 0 ? Number(r[ac47Idx]) || 0 : 0,
+          ad_conv_333: ac333Idx >= 0 ? Number(r[ac333Idx]) || 0 : 0,
+          organic_27: o27Idx >= 0 ? Number(r[o27Idx]) || 0 : 0,
+          organic_47: o47Idx >= 0 ? Number(r[o47Idx]) || 0 : 0,
+          organic_333: o333Idx >= 0 ? Number(r[o333Idx]) || 0 : 0,
+        }));
+
+        if (records.length === 0) {
+          toast({ title: "No valid rows", variant: "destructive" });
+          setAcqCsvImporting(false);
+          return;
+        }
+
+        // Batch upsert in chunks of 50
+        for (let i = 0; i < records.length; i += 50) {
+          const chunk = records.slice(i, i + 50);
+          const { error } = await supabase
+            .from("daily_acquisitions")
+            .upsert(chunk as any, { onConflict: "date" });
+          if (error) {
+            toast({ title: "Import failed", description: error.message, variant: "destructive" });
+            setAcqCsvImporting(false);
+            return;
+          }
+        }
+
+        toast({ title: "CSV imported", description: `${records.length} acquisition rows imported successfully.` });
+        await loadAcquisitions();
+      } catch (err) {
+        toast({ title: "Import error", description: String(err), variant: "destructive" });
+      }
+      setAcqCsvImporting(false);
+    };
+    reader.readAsText(file);
+    if (acqCsvInputRef.current) acqCsvInputRef.current.value = "";
   };
 
   // --- CSV handlers ---
@@ -589,11 +666,24 @@ export function DataEntry() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground font-display">Daily Acquisition Tracking</CardTitle>
-                {!showAcqForm && (
-                  <Button size="sm" onClick={() => setShowAcqForm(true)} className="text-xs">
-                    <Plus className="w-3.5 h-3.5 mr-1.5" />Add Entry
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleAcqCSVImport}
+                    className="hidden"
+                    ref={acqCsvInputRef}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => acqCsvInputRef.current?.click()} disabled={acqCsvImporting} className="text-xs">
+                    {acqCsvImporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1.5" />}
+                    Import CSV
                   </Button>
-                )}
+                  {!showAcqForm && (
+                    <Button size="sm" onClick={() => setShowAcqForm(true)} className="text-xs">
+                      <Plus className="w-3.5 h-3.5 mr-1.5" />Add Entry
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
