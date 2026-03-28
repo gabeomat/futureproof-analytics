@@ -589,11 +589,24 @@ export function DataEntry() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground font-display">Daily Acquisition Tracking</CardTitle>
-                {!showAcqForm && (
-                  <Button size="sm" onClick={() => setShowAcqForm(true)} className="text-xs">
-                    <Plus className="w-3.5 h-3.5 mr-1.5" />Add Entry
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleAcqCSVImport}
+                    className="hidden"
+                    ref={acqCsvInputRef}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => acqCsvInputRef.current?.click()} disabled={acqCsvImporting} className="text-xs">
+                    {acqCsvImporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1.5" />}
+                    Import CSV
                   </Button>
-                )}
+                  {!showAcqForm && (
+                    <Button size="sm" onClick={() => setShowAcqForm(true)} className="text-xs">
+                      <Plus className="w-3.5 h-3.5 mr-1.5" />Add Entry
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
