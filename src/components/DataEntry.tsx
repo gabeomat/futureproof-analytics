@@ -789,21 +789,19 @@ export function DataEntry() {
           {/* Acquisition summary cards */}
           {acqEntries.length > 0 && (() => {
             const totalSpend = acqEntries.reduce((s, e) => s + Number(e.ad_spend), 0);
+            const totalRevenue = acqEntries.reduce((s, e) => s + Number(e.revenue), 0);
             const totalAdConv = acqEntries.reduce((s, e) => s + e.ad_conv_27 + e.ad_conv_47 + e.ad_conv_333, 0);
-            const totalOrganic = acqEntries.reduce((s, e) => s + e.organic_27 + e.organic_47 + e.organic_333, 0);
-            const totalAll = totalAdConv + totalOrganic;
             const avgCpa = totalAdConv > 0 ? totalSpend / totalAdConv : 0;
             const adMrrAdded = acqEntries.reduce((s, e) => s + e.ad_conv_27 * 27 + e.ad_conv_47 * 47 + e.ad_conv_333 * (333 / 12), 0);
-            const roas = totalSpend > 0 ? adMrrAdded / totalSpend : 0;
+            const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
             return (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
                   { label: "Total Ad Spend", value: formatCurrency(totalSpend), color: "text-foreground" },
+                  { label: "Total Revenue", value: formatCurrency(totalRevenue), color: "text-primary" },
                   { label: "Ad Conversions", value: String(totalAdConv), color: "text-primary" },
-                  { label: "Organic Sign-ups", value: String(totalOrganic), color: "text-primary" },
                   { label: "Avg CPA", value: avgCpa > 0 ? formatCurrency(avgCpa) : "—", color: "text-foreground" },
-                  { label: "ROAS (MRR/Spend)", value: totalSpend > 0 ? `${roas.toFixed(2)}x` : "—", color: roas >= 1 ? "text-primary" : "text-destructive" },
-                  { label: "Ad vs Organic", value: totalAll > 0 ? `${Math.round((totalAdConv / totalAll) * 100)}% / ${Math.round((totalOrganic / totalAll) * 100)}%` : "—", color: "text-foreground" },
+                  { label: "ROAS (Rev/Spend)", value: totalSpend > 0 ? `${roas.toFixed(2)}x` : "—", color: roas >= 1 ? "text-primary" : "text-destructive" },
                 ].map((stat) => (
                   <Card key={stat.label} className="bg-card border-border">
                     <CardContent className="p-3">
