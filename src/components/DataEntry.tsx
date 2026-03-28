@@ -295,6 +295,7 @@ export function DataEntry() {
 
         const dateIdx = headers.findIndex((h) => h === "date");
         const spendIdx = headers.findIndex((h) => h === "ad_spend");
+        const revenueIdx = headers.findIndex((h) => h === "revenue");
         const ac27Idx = headers.findIndex((h) => h === "t27");
         const ac47Idx = headers.findIndex((h) => h === "t47");
         const ac333Idx = headers.findIndex((h) => h === "t333");
