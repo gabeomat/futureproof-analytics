@@ -1,43 +1,27 @@
 
 
-## Daily Acquisition Tracking (Ads + Organic)
+## Replace Hardcoded Ad Spend with Real Data from Database
 
 ### What Changes
 
-Add a new "Acquisition" tab to the Data Entry page where you log daily ad spend, ad conversions by price tier, and organic sign-ups by price tier. This data feeds into your dashboard metrics so MRR, member counts, and ROI calculations stay accurate.
+Replace the static `monthlyAdSpend: 3500` in the snapshot with a rolling calculation from your `daily_acquisitions` table. You'll also be able to bulk-import your last 60 days of ad metrics via CSV.
 
-### Database: New `daily_acquisitions` table
+### Step 1: CSV Import for Historical Ad Data
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| date | date | Unique per day |
-| ad_spend | numeric | Total ad spend that day |
-| ad_conv_27 | integer | Ad conversions at $27/mo |
-| ad_conv_47 | integer | Ad conversions at $47/mo |
-| ad_conv_333 | integer | Ad conversions at $333/yr |
-| organic_27 | integer | Organic sign-ups at $27/mo |
-| organic_47 | integer | Organic sign-ups at $47/mo |
-| organic_333 | integer | Organic sign-ups at $333/yr |
-| created_at | timestamptz | Auto-set |
+Add a CSV import button to the Acquisition tab in Data Entry that accepts your 60-day history file. Expected columns: `date, ad_spend, ad_conv_27, ad_conv_47, ad_conv_333, organic_27, organic_47, organic_333`. Each row upserts into the existing `daily_acquisitions` table (no schema changes needed).
 
-Unique constraint on `date` for upsert support. Open RLS policy (matches existing tables).
+### Step 2: Compute Real Ad Spend in `useLiveMetrics`
 
-### Implementation Steps
+Update the `useLiveMetrics` hook to calculate a rolling 30-day ad spend from `daily_acquisitions` data and replace `monthlyAdSpend` with that real number. This means every dashboard metric referencing ad spend will automatically reflect your actual recent spending.
 
-1. **Create `daily_acquisitions` table** via migration
+### Step 3: Update AI Data Context
 
-2. **Add "Acquisition" tab to `DataEntry.tsx`**
-   - Form with date, ad spend, then two grouped sections: "Ad Conversions" ($27, $47, $333) and "Organic" ($27, $47, $333)
-   - Table showing historical entries with computed columns: total conversions, daily revenue added, cost per acquisition
-   - Summary cards: total ad spend, total conversions, avg CPA, ad vs organic split, ROAS
-
-3. **Wire acquisition data into dashboard metrics**
-   - Update the AI edge function's data context to include acquisition data so the AI can analyze ad performance and organic growth trends
+The AI edge function already receives `acquisitionData`. Update `AIInsights.tsx` to also compute and pass a `monthlyAdSpend` override from the acquisition data so the AI strategist sees your real spend instead of $3,500.
 
 ### What You Get
 
-- Daily log of exactly where each member came from (ads vs organic) and at what price
-- Accurate CPA and ROAS calculations based on real data instead of estimates
-- The AI advisor can reference acquisition trends when giving strategic recommendations
+- Upload your 60-day CSV once to backfill history
+- `monthlyAdSpend` on the dashboard becomes a live rolling 30-day total from real entries
+- The AI advisor references your actual ad spend trends instead of a static estimate
+- Each new daily entry you log keeps it continuously updated
 
