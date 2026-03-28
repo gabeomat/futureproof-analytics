@@ -50,6 +50,7 @@ export type Database = {
           organic_27: number
           organic_333: number
           organic_47: number
+          revenue: number
         }
         Insert: {
           ad_conv_27?: number
@@ -62,6 +63,7 @@ export type Database = {
           organic_27?: number
           organic_333?: number
           organic_47?: number
+          revenue?: number
         }
         Update: {
           ad_conv_27?: number
@@ -74,6 +76,7 @@ export type Database = {
           organic_27?: number
           organic_333?: number
           organic_47?: number
+          revenue?: number
         }
         Relationships: []
       }
