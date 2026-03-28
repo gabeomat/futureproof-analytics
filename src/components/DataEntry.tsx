@@ -33,6 +33,7 @@ interface AcquisitionEntry {
   id?: string;
   date: string;
   ad_spend: number;
+  revenue: number;
   ad_conv_27: number;
   ad_conv_47: number;
   ad_conv_333: number;
@@ -64,7 +65,7 @@ const DAILY_FIELDS: { key: keyof Omit<DailyEntry, "date" | "id">; label: string;
 
 const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_page_traffic: 0, discovery_rank: 0, profile_activity: 0, group_activity: 0 };
 const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
-const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
+const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
 
 // --- Component ---
 
@@ -716,20 +717,10 @@ export function DataEntry() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Organic Sign-ups</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
-                        <Input type="number" min="0" value={acqDraft.organic_27 || ""} onChange={(e) => updateAcq("organic_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
-                        <Input type="number" min="0" value={acqDraft.organic_47 || ""} onChange={(e) => updateAcq("organic_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
-                        <Input type="number" min="0" value={acqDraft.organic_333 || ""} onChange={(e) => updateAcq("organic_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
-                      </div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Revenue</p>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Total Revenue ($)</label>
+                      <Input type="number" min="0" value={acqDraft.revenue || ""} onChange={(e) => updateAcq("revenue", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -759,12 +750,10 @@ export function DataEntry() {
                       <TableRow className="bg-secondary/50">
                         <TableHead className="text-[10px] font-mono">Date</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad Spend</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Revenue</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $27</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $47</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $333</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Org $27</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Org $47</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Org $333</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">CPA</TableHead>
                         <TableHead className="w-8"></TableHead>
                       </TableRow>
@@ -777,12 +766,10 @@ export function DataEntry() {
                           <TableRow key={entry.id || i} className="group">
                             <TableCell className="text-xs font-medium text-foreground font-mono">{entry.date}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{formatCurrency(entry.ad_spend)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{formatCurrency(entry.revenue)}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_27}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_47}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_333}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_27}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_47}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_333}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-primary font-semibold">{totalAdConv > 0 ? formatCurrency(cpa) : "—"}</TableCell>
                             <TableCell>
                               <button onClick={() => removeAcq(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
@@ -802,21 +789,19 @@ export function DataEntry() {
           {/* Acquisition summary cards */}
           {acqEntries.length > 0 && (() => {
             const totalSpend = acqEntries.reduce((s, e) => s + Number(e.ad_spend), 0);
+            const totalRevenue = acqEntries.reduce((s, e) => s + Number(e.revenue), 0);
             const totalAdConv = acqEntries.reduce((s, e) => s + e.ad_conv_27 + e.ad_conv_47 + e.ad_conv_333, 0);
-            const totalOrganic = acqEntries.reduce((s, e) => s + e.organic_27 + e.organic_47 + e.organic_333, 0);
-            const totalAll = totalAdConv + totalOrganic;
             const avgCpa = totalAdConv > 0 ? totalSpend / totalAdConv : 0;
             const adMrrAdded = acqEntries.reduce((s, e) => s + e.ad_conv_27 * 27 + e.ad_conv_47 * 47 + e.ad_conv_333 * (333 / 12), 0);
-            const roas = totalSpend > 0 ? adMrrAdded / totalSpend : 0;
+            const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
             return (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
                   { label: "Total Ad Spend", value: formatCurrency(totalSpend), color: "text-foreground" },
+                  { label: "Total Revenue", value: formatCurrency(totalRevenue), color: "text-primary" },
                   { label: "Ad Conversions", value: String(totalAdConv), color: "text-primary" },
-                  { label: "Organic Sign-ups", value: String(totalOrganic), color: "text-primary" },
                   { label: "Avg CPA", value: avgCpa > 0 ? formatCurrency(avgCpa) : "—", color: "text-foreground" },
-                  { label: "ROAS (MRR/Spend)", value: totalSpend > 0 ? `${roas.toFixed(2)}x` : "—", color: roas >= 1 ? "text-primary" : "text-destructive" },
-                  { label: "Ad vs Organic", value: totalAll > 0 ? `${Math.round((totalAdConv / totalAll) * 100)}% / ${Math.round((totalOrganic / totalAll) * 100)}%` : "—", color: "text-foreground" },
+                  { label: "ROAS (Rev/Spend)", value: totalSpend > 0 ? `${roas.toFixed(2)}x` : "—", color: roas >= 1 ? "text-primary" : "text-destructive" },
                 ].map((stat) => (
                   <Card key={stat.label} className="bg-card border-border">
                     <CardContent className="p-3">
