@@ -33,6 +33,7 @@ interface AcquisitionEntry {
   id?: string;
   date: string;
   ad_spend: number;
+  revenue: number;
   ad_conv_27: number;
   ad_conv_47: number;
   ad_conv_333: number;
