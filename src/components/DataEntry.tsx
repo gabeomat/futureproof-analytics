@@ -92,6 +92,8 @@ export function DataEntry() {
   const [showAcqForm, setShowAcqForm] = useState(false);
   const [acqLoading, setAcqLoading] = useState(true);
   const [acqSaving, setAcqSaving] = useState(false);
+  const [acqCsvImporting, setAcqCsvImporting] = useState(false);
+  const acqCsvInputRef = useRef<HTMLInputElement>(null);
 
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
