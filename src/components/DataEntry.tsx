@@ -106,6 +106,13 @@ export function DataEntry() {
   const [acqCsvImporting, setAcqCsvImporting] = useState(false);
   const acqCsvInputRef = useRef<HTMLInputElement>(null);
 
+  // Churn state
+  const [churnEntries, setChurnEntries] = useState<ChurnEntry[]>([]);
+  const [churnDraft, setChurnDraft] = useState<ChurnEntry>({ ...EMPTY_CHURN });
+  const [showChurnForm, setShowChurnForm] = useState(false);
+  const [churnLoading, setChurnLoading] = useState(true);
+  const [churnSaving, setChurnSaving] = useState(false);
+
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
 
@@ -114,6 +121,7 @@ export function DataEntry() {
     loadDaily();
     loadMonthly();
     loadAcquisitions();
+    loadChurnEvents();
   }, []);
 
   const loadDaily = async () => {
