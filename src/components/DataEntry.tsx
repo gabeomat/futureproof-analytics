@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone } from "lucide-react";
+import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +68,15 @@ const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_pa
 const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
 const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
 
+interface ChurnEntry {
+  id?: string;
+  date: string;
+  price_point: number;
+  notes: string;
+}
+
+const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "" };
+
 // --- Component ---
 
 export function DataEntry() {
@@ -96,6 +106,13 @@ export function DataEntry() {
   const [acqCsvImporting, setAcqCsvImporting] = useState(false);
   const acqCsvInputRef = useRef<HTMLInputElement>(null);
 
+  // Churn state
+  const [churnEntries, setChurnEntries] = useState<ChurnEntry[]>([]);
+  const [churnDraft, setChurnDraft] = useState<ChurnEntry>({ ...EMPTY_CHURN });
+  const [showChurnForm, setShowChurnForm] = useState(false);
+  const [churnLoading, setChurnLoading] = useState(true);
+  const [churnSaving, setChurnSaving] = useState(false);
+
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
 
@@ -104,6 +121,7 @@ export function DataEntry() {
     loadDaily();
     loadMonthly();
     loadAcquisitions();
+    loadChurnEvents();
   }, []);
 
   const loadDaily = async () => {
@@ -350,6 +368,50 @@ export function DataEntry() {
     if (acqCsvInputRef.current) acqCsvInputRef.current.value = "";
   };
 
+  // --- Churn handlers ---
+  const loadChurnEvents = async () => {
+    setChurnLoading(true);
+    const { data, error } = await supabase
+      .from("churn_events")
+      .select("*")
+      .order("date", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load churn events", description: error.message, variant: "destructive" });
+    } else {
+      setChurnEntries((data as unknown as ChurnEntry[]) || []);
+    }
+    setChurnLoading(false);
+  };
+
+  const addChurnEvent = async () => {
+    if (!churnDraft.date || !churnDraft.price_point) {
+      toast({ title: "Date and price point required", variant: "destructive" });
+      return;
+    }
+    setChurnSaving(true);
+    const { id, ...payload } = churnDraft;
+    const { error } = await supabase.from("churn_events").insert(payload as any);
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Churn event logged" });
+      setChurnDraft({ ...EMPTY_CHURN, date: todayStr() });
+      setShowChurnForm(false);
+      await loadChurnEvents();
+    }
+    setChurnSaving(false);
+  };
+
+  const removeChurn = async (entry: ChurnEntry) => {
+    if (!entry.id) return;
+    const { error } = await supabase.from("churn_events").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+    } else {
+      setChurnEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
+  };
+
   // --- CSV handlers ---
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -410,6 +472,10 @@ export function DataEntry() {
           <TabsTrigger value="acquisition" className="text-xs gap-1.5">
             <Megaphone className="w-3.5 h-3.5" />
             Acquisition
+          </TabsTrigger>
+          <TabsTrigger value="churn" className="text-xs gap-1.5">
+            <UserMinus className="w-3.5 h-3.5" />
+            Churn Log
           </TabsTrigger>
           <TabsTrigger value="csv" className="text-xs gap-1.5">
             <FileUp className="w-3.5 h-3.5" />
@@ -878,6 +944,97 @@ export function DataEntry() {
                     )}
                   </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== CHURN LOG TAB ========== */}
+        <TabsContent value="churn" className="space-y-4 mt-4">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground">Churn Event Log</CardTitle>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => setShowChurnForm(!showChurnForm)}>
+                    <Plus className="w-3.5 h-3.5" />
+                    Log Churn
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Log each churn notification with the member's price point to build definitive churn data.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showChurnForm && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</label>
+                    <Input type="date" value={churnDraft.date} onChange={(e) => setChurnDraft((d) => ({ ...d, date: e.target.value }))} className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Price Point ($)</label>
+                    <Input type="number" value={churnDraft.price_point || ""} onChange={(e) => setChurnDraft((d) => ({ ...d, price_point: Number(e.target.value) || 0 }))} placeholder="27, 47, or 333" className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes (optional)</label>
+                    <Input value={churnDraft.notes} onChange={(e) => setChurnDraft((d) => ({ ...d, notes: e.target.value }))} placeholder="Reason if known" className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div className="sm:col-span-3 flex justify-end">
+                    <Button size="sm" className="text-xs gap-1.5" onClick={addChurnEvent} disabled={churnSaving}>
+                      {churnSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {churnLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+              ) : churnEntries.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">No churn events logged yet. Click "Log Churn" to start tracking.</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Events</p>
+                      <p className="text-lg font-bold text-foreground">{churnEntries.length}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue Lost</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.price_point, 0))}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Price Point</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.price_point, 0) / churnEntries.length)}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-secondary/50">
+                          <TableHead className="text-[10px] font-semibold">Date</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Price Point</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Notes</TableHead>
+                          <TableHead className="text-[10px] font-semibold w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {churnEntries.map((entry) => (
+                          <TableRow key={entry.id}>
+                            <TableCell className="text-xs font-mono">{entry.date}</TableCell>
+                            <TableCell className="text-xs font-mono">{formatCurrency(entry.price_point)}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{entry.notes || "—"}</TableCell>
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeChurn(entry)}>
+                                <Trash2 className="w-3 h-3 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

@@ -38,6 +38,30 @@ export type Database = {
         }
         Relationships: []
       }
+      churn_events: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          price_point: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          price_point: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          price_point?: number
+        }
+        Relationships: []
+      }
       daily_acquisitions: {
         Row: {
           ad_conv_27: number
