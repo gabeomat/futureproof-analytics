@@ -473,6 +473,10 @@ export function DataEntry() {
             <Megaphone className="w-3.5 h-3.5" />
             Acquisition
           </TabsTrigger>
+          <TabsTrigger value="churn" className="text-xs gap-1.5">
+            <UserMinus className="w-3.5 h-3.5" />
+            Churn Log
+          </TabsTrigger>
           <TabsTrigger value="csv" className="text-xs gap-1.5">
             <FileUp className="w-3.5 h-3.5" />
             CSV Upload
