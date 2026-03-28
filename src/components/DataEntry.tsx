@@ -368,6 +368,50 @@ export function DataEntry() {
     if (acqCsvInputRef.current) acqCsvInputRef.current.value = "";
   };
 
+  // --- Churn handlers ---
+  const loadChurnEvents = async () => {
+    setChurnLoading(true);
+    const { data, error } = await supabase
+      .from("churn_events")
+      .select("*")
+      .order("date", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load churn events", description: error.message, variant: "destructive" });
+    } else {
+      setChurnEntries((data as unknown as ChurnEntry[]) || []);
+    }
+    setChurnLoading(false);
+  };
+
+  const addChurnEvent = async () => {
+    if (!churnDraft.date || !churnDraft.price_point) {
+      toast({ title: "Date and price point required", variant: "destructive" });
+      return;
+    }
+    setChurnSaving(true);
+    const { id, ...payload } = churnDraft;
+    const { error } = await supabase.from("churn_events").insert(payload as any);
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Churn event logged" });
+      setChurnDraft({ ...EMPTY_CHURN, date: todayStr() });
+      setShowChurnForm(false);
+      await loadChurnEvents();
+    }
+    setChurnSaving(false);
+  };
+
+  const removeChurn = async (entry: ChurnEntry) => {
+    if (!entry.id) return;
+    const { error } = await supabase.from("churn_events").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+    } else {
+      setChurnEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
+  };
+
   // --- CSV handlers ---
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
