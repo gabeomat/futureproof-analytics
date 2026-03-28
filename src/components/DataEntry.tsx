@@ -948,6 +948,97 @@ export function DataEntry() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ========== CHURN LOG TAB ========== */}
+        <TabsContent value="churn" className="space-y-4 mt-4">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground">Churn Event Log</CardTitle>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => setShowChurnForm(!showChurnForm)}>
+                    <Plus className="w-3.5 h-3.5" />
+                    Log Churn
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Log each churn notification with the member's price point to build definitive churn data.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showChurnForm && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</label>
+                    <Input type="date" value={churnDraft.date} onChange={(e) => setChurnDraft((d) => ({ ...d, date: e.target.value }))} className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Price Point ($)</label>
+                    <Input type="number" value={churnDraft.price_point || ""} onChange={(e) => setChurnDraft((d) => ({ ...d, price_point: Number(e.target.value) || 0 }))} placeholder="27, 47, or 333" className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes (optional)</label>
+                    <Input value={churnDraft.notes} onChange={(e) => setChurnDraft((d) => ({ ...d, notes: e.target.value }))} placeholder="Reason if known" className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div className="sm:col-span-3 flex justify-end">
+                    <Button size="sm" className="text-xs gap-1.5" onClick={addChurnEvent} disabled={churnSaving}>
+                      {churnSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {churnLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+              ) : churnEntries.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">No churn events logged yet. Click "Log Churn" to start tracking.</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Events</p>
+                      <p className="text-lg font-bold text-foreground">{churnEntries.length}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue Lost</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.price_point, 0))}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Price Point</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.price_point, 0) / churnEntries.length)}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-secondary/50">
+                          <TableHead className="text-[10px] font-semibold">Date</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Price Point</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Notes</TableHead>
+                          <TableHead className="text-[10px] font-semibold w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {churnEntries.map((entry) => (
+                          <TableRow key={entry.id}>
+                            <TableCell className="text-xs font-mono">{entry.date}</TableCell>
+                            <TableCell className="text-xs font-mono">{formatCurrency(entry.price_point)}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{entry.notes || "—"}</TableCell>
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeChurn(entry)}>
+                                <Trash2 className="w-3 h-3 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
