@@ -294,10 +294,10 @@ export function DataEntry() {
         const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase());
 
         const dateIdx = headers.findIndex((h) => h === "date");
-        const spendIdx = headers.findIndex((h) => h.includes("ad_spend") || h.includes("spend"));
-        const ac27Idx = headers.findIndex((h) => h.includes("ad_conv_27") || h === "ad_27");
-        const ac47Idx = headers.findIndex((h) => h.includes("ad_conv_47") || h === "ad_47");
-        const ac333Idx = headers.findIndex((h) => h.includes("ad_conv_333") || h === "ad_333");
+        const spendIdx = headers.findIndex((h) => h === "ad_spend");
+        const ac27Idx = headers.findIndex((h) => h === "t27");
+        const ac47Idx = headers.findIndex((h) => h === "t47");
+        const ac333Idx = headers.findIndex((h) => h === "t333");
         const o27Idx = headers.findIndex((h) => h.includes("organic_27") || h === "org_27");
         const o47Idx = headers.findIndex((h) => h.includes("organic_47") || h === "org_47");
         const o333Idx = headers.findIndex((h) => h.includes("organic_333") || h === "org_333");
