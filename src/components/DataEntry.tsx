@@ -295,6 +295,7 @@ export function DataEntry() {
 
         const dateIdx = headers.findIndex((h) => h === "date");
         const spendIdx = headers.findIndex((h) => h === "ad_spend");
+        const revenueIdx = headers.findIndex((h) => h === "revenue");
         const ac27Idx = headers.findIndex((h) => h === "t27");
         const ac47Idx = headers.findIndex((h) => h === "t47");
         const ac333Idx = headers.findIndex((h) => h === "t333");
@@ -309,6 +310,7 @@ export function DataEntry() {
         const records = rows.filter((r) => r[dateIdx]).map((r) => ({
           date: r[dateIdx],
           ad_spend: spendIdx >= 0 ? Number(r[spendIdx]) || 0 : 0,
+          revenue: revenueIdx >= 0 ? Number(r[revenueIdx]) || 0 : 0,
           ad_conv_27: ac27Idx >= 0 ? Number(r[ac27Idx]) || 0 : 0,
           ad_conv_47: ac47Idx >= 0 ? Number(r[ac47Idx]) || 0 : 0,
           ad_conv_333: ac333Idx >= 0 ? Number(r[ac333Idx]) || 0 : 0,
