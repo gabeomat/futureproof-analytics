@@ -766,12 +766,10 @@ export function DataEntry() {
                           <TableRow key={entry.id || i} className="group">
                             <TableCell className="text-xs font-medium text-foreground font-mono">{entry.date}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{formatCurrency(entry.ad_spend)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{formatCurrency(entry.revenue)}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_27}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_47}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_333}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_27}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_47}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{entry.organic_333}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-primary font-semibold">{totalAdConv > 0 ? formatCurrency(cpa) : "—"}</TableCell>
                             <TableCell>
                               <button onClick={() => removeAcq(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
