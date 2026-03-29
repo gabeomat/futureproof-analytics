@@ -118,6 +118,8 @@ export function DataEntry() {
   const [showChurnForm, setShowChurnForm] = useState(false);
   const [churnLoading, setChurnLoading] = useState(true);
   const [churnSaving, setChurnSaving] = useState(false);
+  const [churnCsvImporting, setChurnCsvImporting] = useState(false);
+  const churnCsvInputRef = useRef<HTMLInputElement>(null);
 
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
