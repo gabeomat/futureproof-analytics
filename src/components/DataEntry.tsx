@@ -493,12 +493,6 @@ export function DataEntry() {
     reader.readAsText(file);
     if (churnCsvInputRef.current) churnCsvInputRef.current.value = "";
   };
-    if (error) {
-      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
-    } else {
-      setChurnEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    }
-  };
 
   // --- CSV handlers ---
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
