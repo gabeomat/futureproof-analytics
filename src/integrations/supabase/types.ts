@@ -42,23 +42,41 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          email: string | null
+          first_name: string | null
           id: string
+          joined_date: string | null
+          last_name: string | null
+          ltv: number
           notes: string | null
           price_point: number
+          tier: string | null
         }
         Insert: {
           created_at?: string
           date?: string
+          email?: string | null
+          first_name?: string | null
           id?: string
+          joined_date?: string | null
+          last_name?: string | null
+          ltv?: number
           notes?: string | null
           price_point: number
+          tier?: string | null
         }
         Update: {
           created_at?: string
           date?: string
+          email?: string | null
+          first_name?: string | null
           id?: string
+          joined_date?: string | null
+          last_name?: string | null
+          ltv?: number
           notes?: string | null
           price_point?: number
+          tier?: string | null
         }
         Relationships: []
       }

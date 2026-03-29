@@ -73,9 +73,15 @@ interface ChurnEntry {
   date: string;
   price_point: number;
   notes: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  joined_date: string;
+  tier: string;
+  ltv: number;
 }
 
-const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "" };
+const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "", first_name: "", last_name: "", email: "", joined_date: "", tier: "", ltv: 0 };
 
 // --- Component ---
 
@@ -112,6 +118,8 @@ export function DataEntry() {
   const [showChurnForm, setShowChurnForm] = useState(false);
   const [churnLoading, setChurnLoading] = useState(true);
   const [churnSaving, setChurnSaving] = useState(false);
+  const [churnCsvImporting, setChurnCsvImporting] = useState(false);
+  const churnCsvInputRef = useRef<HTMLInputElement>(null);
 
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
@@ -410,6 +418,80 @@ export function DataEntry() {
     } else {
       setChurnEntries((prev) => prev.filter((e) => e.id !== entry.id));
     }
+  };
+
+  // --- Churn CSV Import ---
+  const handleChurnCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setChurnCsvImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter((l) => l.trim());
+        if (lines.length < 2) {
+          toast({ title: "Invalid CSV", description: "File must have headers and at least one data row.", variant: "destructive" });
+          setChurnCsvImporting(false);
+          return;
+        }
+        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase());
+
+        const firstNameIdx = headers.findIndex((h) => h === "firstname");
+        const lastNameIdx = headers.findIndex((h) => h === "lastname");
+        const emailIdx = headers.findIndex((h) => h === "email");
+        const joinedDateIdx = headers.findIndex((h) => h === "joineddate");
+        const priceIdx = headers.findIndex((h) => h === "price");
+        const tierIdx = headers.findIndex((h) => h === "tier");
+        const ltvIdx = headers.findIndex((h) => h === "ltv");
+
+        const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
+        const records = rows.filter((r) => r.length > 1).map((r) => {
+          const priceStr = priceIdx >= 0 ? r[priceIdx].replace(/[^0-9.]/g, "") : "0";
+          const ltvStr = ltvIdx >= 0 ? r[ltvIdx].replace(/[^0-9.]/g, "") : "0";
+          const joinedRaw = joinedDateIdx >= 0 ? r[joinedDateIdx] : "";
+          return {
+            date: todayStr(),
+            first_name: firstNameIdx >= 0 ? r[firstNameIdx] : "",
+            last_name: lastNameIdx >= 0 ? r[lastNameIdx] : "",
+            email: emailIdx >= 0 ? r[emailIdx] : "",
+            joined_date: joinedRaw || null,
+            price_point: Number(priceStr) || 0,
+            tier: tierIdx >= 0 ? r[tierIdx] : "",
+            ltv: Number(ltvStr) || 0,
+            notes: "",
+          };
+        });
+
+        if (records.length === 0) {
+          toast({ title: "No valid rows", variant: "destructive" });
+          setChurnCsvImporting(false);
+          return;
+        }
+
+        // Clear existing and insert new
+        await supabase.from("churn_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        for (let i = 0; i < records.length; i += 50) {
+          const chunk = records.slice(i, i + 50);
+          const { error } = await supabase.from("churn_events").insert(chunk as any);
+          if (error) {
+            toast({ title: "Import failed", description: error.message, variant: "destructive" });
+            setChurnCsvImporting(false);
+            return;
+          }
+        }
+
+        toast({ title: "Churn CSV imported", description: `${records.length} churned members imported.` });
+        await loadChurnEvents();
+      } catch (err) {
+        toast({ title: "Import error", description: String(err), variant: "destructive" });
+      }
+      setChurnCsvImporting(false);
+    };
+    reader.readAsText(file);
+    if (churnCsvInputRef.current) churnCsvInputRef.current.value = "";
   };
 
   // --- CSV handlers ---
@@ -949,35 +1031,51 @@ export function DataEntry() {
           </Card>
         </TabsContent>
 
-        {/* ========== CHURN LOG TAB ========== */}
         <TabsContent value="churn" className="space-y-4 mt-4">
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-foreground">Churn Event Log</CardTitle>
+                <CardTitle className="text-sm font-semibold text-foreground">Churned Members</CardTitle>
                 <div className="flex gap-2">
+                  <input ref={churnCsvInputRef} type="file" accept=".csv" onChange={handleChurnCSVImport} className="hidden" />
+                  <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => churnCsvInputRef.current?.click()} disabled={churnCsvImporting}>
+                    {churnCsvImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    Import CSV
+                  </Button>
                   <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => setShowChurnForm(!showChurnForm)}>
                     <Plus className="w-3.5 h-3.5" />
                     Log Churn
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Log each churn notification with the member's price point to build definitive churn data.</p>
+              <p className="text-xs text-muted-foreground">Import your churned members CSV or log individual events.</p>
             </CardHeader>
             <CardContent className="space-y-4">
               {showChurnForm && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</label>
-                    <Input type="date" value={churnDraft.date} onChange={(e) => setChurnDraft((d) => ({ ...d, date: e.target.value }))} className="mt-1 h-8 text-xs bg-background" />
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">First Name</label>
+                    <Input value={churnDraft.first_name} onChange={(e) => setChurnDraft((d) => ({ ...d, first_name: e.target.value }))} className="mt-1 h-8 text-xs bg-background" />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Price Point ($)</label>
-                    <Input type="number" value={churnDraft.price_point || ""} onChange={(e) => setChurnDraft((d) => ({ ...d, price_point: Number(e.target.value) || 0 }))} placeholder="27, 47, or 333" className="mt-1 h-8 text-xs bg-background" />
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Last Name</label>
+                    <Input value={churnDraft.last_name} onChange={(e) => setChurnDraft((d) => ({ ...d, last_name: e.target.value }))} className="mt-1 h-8 text-xs bg-background" />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes (optional)</label>
-                    <Input value={churnDraft.notes} onChange={(e) => setChurnDraft((d) => ({ ...d, notes: e.target.value }))} placeholder="Reason if known" className="mt-1 h-8 text-xs bg-background" />
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Email</label>
+                    <Input value={churnDraft.email} onChange={(e) => setChurnDraft((d) => ({ ...d, email: e.target.value }))} className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Price ($)</label>
+                    <Input type="number" value={churnDraft.price_point || ""} onChange={(e) => setChurnDraft((d) => ({ ...d, price_point: Number(e.target.value) || 0 }))} className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tier</label>
+                    <Input value={churnDraft.tier} onChange={(e) => setChurnDraft((d) => ({ ...d, tier: e.target.value }))} placeholder="standard / premium" className="mt-1 h-8 text-xs bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">LTV ($)</label>
+                    <Input type="number" value={churnDraft.ltv || ""} onChange={(e) => setChurnDraft((d) => ({ ...d, ltv: Number(e.target.value) || 0 }))} className="mt-1 h-8 text-xs bg-background" />
                   </div>
                   <div className="sm:col-span-3 flex justify-end">
                     <Button size="sm" className="text-xs gap-1.5" onClick={addChurnEvent} disabled={churnSaving}>
@@ -991,39 +1089,45 @@ export function DataEntry() {
               {churnLoading ? (
                 <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
               ) : churnEntries.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No churn events logged yet. Click "Log Churn" to start tracking.</p>
+                <p className="text-xs text-muted-foreground text-center py-8">No churned members yet. Import a CSV or click "Log Churn" to start.</p>
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Events</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Churned</p>
                       <p className="text-lg font-bold text-foreground">{churnEntries.length}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue Lost</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">MRR Lost</p>
                       <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.price_point, 0))}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-secondary/50 border border-border text-center">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Price Point</p>
-                      <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.price_point, 0) / churnEntries.length)}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total LTV Lost</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(churnEntries.reduce((sum, e) => sum + e.ltv, 0))}</p>
                     </div>
                   </div>
-                  <div className="rounded-md border border-border overflow-hidden">
+                  <div className="rounded-md border border-border overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-secondary/50">
-                          <TableHead className="text-[10px] font-semibold">Date</TableHead>
-                          <TableHead className="text-[10px] font-semibold">Price Point</TableHead>
-                          <TableHead className="text-[10px] font-semibold">Notes</TableHead>
-                          <TableHead className="text-[10px] font-semibold w-10"></TableHead>
+                          <TableHead className="text-[10px] font-semibold">Name</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Email</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Joined</TableHead>
+                          <TableHead className="text-[10px] font-semibold text-right">Price</TableHead>
+                          <TableHead className="text-[10px] font-semibold">Tier</TableHead>
+                          <TableHead className="text-[10px] font-semibold text-right">LTV</TableHead>
+                          <TableHead className="w-8"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {churnEntries.map((entry) => (
                           <TableRow key={entry.id}>
-                            <TableCell className="text-xs font-mono">{entry.date}</TableCell>
-                            <TableCell className="text-xs font-mono">{formatCurrency(entry.price_point)}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{entry.notes || "—"}</TableCell>
+                            <TableCell className="text-xs font-mono">{entry.first_name} {entry.last_name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{entry.email || "—"}</TableCell>
+                            <TableCell className="text-xs font-mono">{entry.joined_date ? new Date(entry.joined_date).toLocaleDateString() : "—"}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(entry.price_point)}</TableCell>
+                            <TableCell className="text-xs capitalize">{entry.tier || "—"}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(entry.ltv)}</TableCell>
                             <TableCell>
                               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeChurn(entry)}>
                                 <Trash2 className="w-3 h-3 text-destructive" />
