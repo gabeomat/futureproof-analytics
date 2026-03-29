@@ -420,6 +420,86 @@ export function DataEntry() {
     }
   };
 
+  // --- Churn CSV Import ---
+  const handleChurnCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setChurnCsvImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter((l) => l.trim());
+        if (lines.length < 2) {
+          toast({ title: "Invalid CSV", description: "File must have headers and at least one data row.", variant: "destructive" });
+          setChurnCsvImporting(false);
+          return;
+        }
+        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase());
+
+        const firstNameIdx = headers.findIndex((h) => h === "firstname");
+        const lastNameIdx = headers.findIndex((h) => h === "lastname");
+        const emailIdx = headers.findIndex((h) => h === "email");
+        const joinedDateIdx = headers.findIndex((h) => h === "joineddate");
+        const priceIdx = headers.findIndex((h) => h === "price");
+        const tierIdx = headers.findIndex((h) => h === "tier");
+        const ltvIdx = headers.findIndex((h) => h === "ltv");
+
+        const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
+        const records = rows.filter((r) => r.length > 1).map((r) => {
+          const priceStr = priceIdx >= 0 ? r[priceIdx].replace(/[^0-9.]/g, "") : "0";
+          const ltvStr = ltvIdx >= 0 ? r[ltvIdx].replace(/[^0-9.]/g, "") : "0";
+          const joinedRaw = joinedDateIdx >= 0 ? r[joinedDateIdx] : "";
+          return {
+            date: todayStr(),
+            first_name: firstNameIdx >= 0 ? r[firstNameIdx] : "",
+            last_name: lastNameIdx >= 0 ? r[lastNameIdx] : "",
+            email: emailIdx >= 0 ? r[emailIdx] : "",
+            joined_date: joinedRaw || null,
+            price_point: Number(priceStr) || 0,
+            tier: tierIdx >= 0 ? r[tierIdx] : "",
+            ltv: Number(ltvStr) || 0,
+            notes: "",
+          };
+        });
+
+        if (records.length === 0) {
+          toast({ title: "No valid rows", variant: "destructive" });
+          setChurnCsvImporting(false);
+          return;
+        }
+
+        // Clear existing and insert new
+        await supabase.from("churn_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        for (let i = 0; i < records.length; i += 50) {
+          const chunk = records.slice(i, i + 50);
+          const { error } = await supabase.from("churn_events").insert(chunk as any);
+          if (error) {
+            toast({ title: "Import failed", description: error.message, variant: "destructive" });
+            setChurnCsvImporting(false);
+            return;
+          }
+        }
+
+        toast({ title: "Churn CSV imported", description: `${records.length} churned members imported.` });
+        await loadChurnEvents();
+      } catch (err) {
+        toast({ title: "Import error", description: String(err), variant: "destructive" });
+      }
+      setChurnCsvImporting(false);
+    };
+    reader.readAsText(file);
+    if (churnCsvInputRef.current) churnCsvInputRef.current.value = "";
+  };
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+    } else {
+      setChurnEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
+  };
+
   // --- CSV handlers ---
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
