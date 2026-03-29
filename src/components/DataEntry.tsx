@@ -73,9 +73,15 @@ interface ChurnEntry {
   date: string;
   price_point: number;
   notes: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  joined_date: string;
+  tier: string;
+  ltv: number;
 }
 
-const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "" };
+const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "", first_name: "", last_name: "", email: "", joined_date: "", tier: "", ltv: 0 };
 
 // --- Component ---
 
