@@ -24,74 +24,52 @@ export function useLiveMetrics() {
         .select("*")
         .order("date", { ascending: true });
       if (error) throw error;
-      
+
       if (!data || data.length === 0) return null;
 
-      let totalAdConv27 = 0, totalAdConv47 = 0, totalAdConv333 = 0;
-      let totalOrganic27 = 0, totalOrganic47 = 0, totalOrganic333 = 0;
       let totalAdSpend = 0;
+      let totalRevenue = 0;
       let rolling30AdSpend = 0;
+      let rolling30Revenue = 0;
 
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
       for (const row of data) {
-        totalAdConv27 += row.ad_conv_27;
-        totalAdConv47 += row.ad_conv_47;
-        totalAdConv333 += row.ad_conv_333;
-        totalOrganic27 += row.organic_27;
-        totalOrganic47 += row.organic_47;
-        totalOrganic333 += row.organic_333;
         totalAdSpend += Number(row.ad_spend);
+        totalRevenue += Number(row.revenue);
         if (row.date >= thirtyDaysAgo) {
           rolling30AdSpend += Number(row.ad_spend);
+          rolling30Revenue += Number(row.revenue);
         }
       }
 
-      const totalNewMonthly = totalAdConv27 + totalAdConv47 + totalOrganic27 + totalOrganic47;
-      const totalNewAnnual = totalAdConv333 + totalOrganic333;
-      const totalNewMRR = (totalAdConv27 + totalOrganic27) * 27 + (totalAdConv47 + totalOrganic47) * 47;
-      const totalNewAnnualMRR = (totalAdConv333 + totalOrganic333) * (333 / 12);
-
       return {
-        totalNewMonthly,
-        totalNewAnnual,
-        totalNewMRR,
-        totalNewAnnualMRR,
         totalAdSpend,
+        totalRevenue,
         rolling30AdSpend,
-        totalConversions: totalNewMonthly + totalNewAnnual,
+        rolling30Revenue,
       };
     },
   });
 
-  // Build a live snapshot that merges DB data with the hardcoded baseline
+  // Start from the hardcoded baseline
   const liveSnapshot = { ...currentSnapshot };
 
+  // Override with real DB data when available
   if (latestMetrics) {
-    // Use the latest daily_metrics MRR and member count as the source of truth
     liveSnapshot.skoolMRR = Number(latestMetrics.mrr);
     liveSnapshot.totalMembers = latestMetrics.members;
   }
 
-  if (acquisitionTotals) {
-    // Add new members from acquisitions to baseline paying members
-    liveSnapshot.payingMembers = currentSnapshot.payingMembers + acquisitionTotals.totalNewMonthly + acquisitionTotals.totalNewAnnual;
-    liveSnapshot.monthlyPayingMembers = currentSnapshot.monthlyPayingMembers + acquisitionTotals.totalNewMonthly;
-    liveSnapshot.annualPayingMembers = currentSnapshot.annualPayingMembers + acquisitionTotals.totalNewAnnual;
-    liveSnapshot.pureMonthlyMRR = currentSnapshot.pureMonthlyMRR + acquisitionTotals.totalNewMRR;
-    liveSnapshot.annualizedContribution = currentSnapshot.annualizedContribution + acquisitionTotals.totalNewAnnualMRR;
-
-    // Replace hardcoded monthlyAdSpend with rolling 30-day real data
-    if (acquisitionTotals.rolling30AdSpend > 0) {
-      liveSnapshot.monthlyAdSpend = acquisitionTotals.rolling30AdSpend;
-    }
+  // Use rolling 30-day ad spend from real data
+  if (acquisitionTotals && acquisitionTotals.rolling30AdSpend > 0) {
+    liveSnapshot.monthlyAdSpend = acquisitionTotals.rolling30AdSpend;
   }
 
-  // Recalculate derived metrics
+  // Recalculate derived metrics from the real MRR and member counts
   if (liveSnapshot.payingMembers > 0) {
     liveSnapshot.skoolARPU = Math.round(liveSnapshot.skoolMRR / liveSnapshot.payingMembers);
-    liveSnapshot.currentPricingMembers = liveSnapshot.payingMembers - liveSnapshot.legacyMembers;
   }
   if (liveSnapshot.avgChurnRate > 0) {
     liveSnapshot.calculatedLTV = Math.round(liveSnapshot.skoolARPU / (liveSnapshot.avgChurnRate / 100));
