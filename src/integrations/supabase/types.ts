@@ -188,6 +188,48 @@ export type Database = {
         }
         Relationships: []
       }
+      skool_members: {
+        Row: {
+          id: string
+          first_name: string | null
+          last_name: string | null
+          email: string | null
+          joined_date: string | null
+          price: string | null
+          tier: string | null
+          ltv: string | null
+          status: string | null
+          last_active: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          first_name?: string | null
+          last_name?: string | null
+          email?: string | null
+          joined_date?: string | null
+          price?: string | null
+          tier?: string | null
+          ltv?: string | null
+          status?: string | null
+          last_active?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          first_name?: string | null
+          last_name?: string | null
+          email?: string | null
+          joined_date?: string | null
+          price?: string | null
+          tier?: string | null
+          ltv?: string | null
+          status?: string | null
+          last_active?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       strategy_notes: {
         Row: {
           created_at: string

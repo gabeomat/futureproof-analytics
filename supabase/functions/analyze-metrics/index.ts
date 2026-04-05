@@ -16,7 +16,7 @@ When giving your initial analysis, structure your response with these sections u
 Assess growth rate, sustainability, and momentum. Reference specific month-over-month changes.
 
 ## 🔄 Churn Deep Dive
-Evaluate revenue churn rate vs. industry benchmarks (typical SaaS: 5-7%, community: 8-12%). Identify patterns and root causes.
+Evaluate revenue churn rate vs. industry benchmarks (typical SaaS: 5-7%, community: 8-12%). Identify patterns and root causes. You have access to individual churn event records — analyze churn by price tier, tenure (time from joined_date to churn date), and look for cohort patterns. Flag if certain tiers or join cohorts churn faster than others.
 
 ## 💰 Pricing Strategy Recommendation
 Should they raise prices, keep them, or restructure tiers? Provide SPECIFIC numbers and reasoning.
@@ -25,7 +25,7 @@ Should they raise prices, keep them, or restructure tiers? Provide SPECIFIC numb
 How to handle grandfathered members on lower pricing. Recommend specific tactics with timelines.
 
 ## 📈 LTV & Unit Economics
-Assess LTV/CAC ratio health. Is ad spend efficient? What's the payback period?
+Assess LTV/CAC ratio health. Is ad spend efficient? What's the payback period? If Skool member data is available, analyze the active member base composition, join date distribution, and engagement tiers.
 
 ## 🎯 90-Day Action Plan
 Provide 5-7 specific, prioritized actions with expected impact on MRR.
@@ -60,7 +60,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, messages, strategyNotes } = body;
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, messages, strategyNotes } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -91,7 +91,14 @@ ${JSON.stringify(monthlyRevenue || [], null, 2)}
 
 **Daily Acquisition Data (Ad Spend, Ad Conversions by tier, Organic sign-ups by tier):**
 Price tiers: $27/mo, $47/mo, $333/yr (annual = $27.75/mo MRR equivalent)
-${JSON.stringify(acquisitionData || [], null, 2)}`;
+${JSON.stringify(acquisitionData || [], null, 2)}
+
+**Individual Churn Events (each churned member with details):**
+Fields: date (churn date), first_name, last_name, email, price_point (their monthly $), tier, joined_date, ltv (lifetime value paid), notes
+${JSON.stringify(churnEvents || [], null, 2)}
+
+**Current Skool Members (from latest member export):**
+${JSON.stringify(skoolMembers || [], null, 2)}`;
 
     // Inject past strategy notes with dates
     if (strategyNotes && strategyNotes.length > 0) {
