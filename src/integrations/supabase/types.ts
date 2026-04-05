@@ -188,6 +188,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ceo_notes: {
+        Row: {
+          id: string
+          date: string
+          biggest_win: string
+          biggest_bottleneck: string
+          todays_focus: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          date: string
+          biggest_win?: string
+          biggest_bottleneck?: string
+          todays_focus?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          date?: string
+          biggest_win?: string
+          biggest_bottleneck?: string
+          todays_focus?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       strategy_notes: {
         Row: {
           created_at: string

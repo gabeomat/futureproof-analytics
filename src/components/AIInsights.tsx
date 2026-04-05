@@ -122,12 +122,13 @@ export function AIInsights() {
   }, [messages, scrollToBottom]);
 
   const fetchDataPayload = async () => {
-    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, { data: churnEvents }, { data: skoolMembers }, { data: recentConvs }] = await Promise.all([
+    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, { data: churnEvents }, { data: skoolMembers }, { data: ceoNotes }, { data: recentConvs }] = await Promise.all([
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("monthly_revenue").select("*").order("month", { ascending: false }).limit(12),
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).limit(60),
       supabase.from("churn_events").select("*").order("date", { ascending: false }).limit(200),
       (supabase.from as any)("skool_members").select("*").order("joined_date", { ascending: false }).limit(500),
+      supabase.from("ceo_notes").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("ai_conversations").select("id, title, messages, created_at").order("updated_at", { ascending: false }).limit(3),
     ]);
 
@@ -164,6 +165,7 @@ export function AIInsights() {
       acquisitionData,
       churnEvents,
       skoolMembers,
+      ceoNotes,
       recentConversations,
     };
     setDataPayload(payload);

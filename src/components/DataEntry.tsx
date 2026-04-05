@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus } from "lucide-react";
+import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus, NotebookPen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
@@ -83,6 +83,17 @@ interface ChurnEntry {
 
 const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "", first_name: "", last_name: "", email: "", joined_date: "", tier: "", ltv: 0 };
 
+interface CEONotesEntry {
+  id?: string;
+  date: string;
+  biggest_win: string;
+  biggest_bottleneck: string;
+  todays_focus: string;
+  notes: string;
+}
+
+const EMPTY_CEO: CEONotesEntry = { date: todayStr(), biggest_win: "", biggest_bottleneck: "", todays_focus: "", notes: "" };
+
 // --- Component ---
 
 export function DataEntry() {
@@ -121,6 +132,13 @@ export function DataEntry() {
   const [churnCsvImporting, setChurnCsvImporting] = useState(false);
   const churnCsvInputRef = useRef<HTMLInputElement>(null);
 
+  // CEO Notes state
+  const [ceoEntries, setCeoEntries] = useState<CEONotesEntry[]>([]);
+  const [ceoDraft, setCeoDraft] = useState<CEONotesEntry>({ ...EMPTY_CEO });
+  const [showCeoForm, setShowCeoForm] = useState(false);
+  const [ceoLoading, setCeoLoading] = useState(true);
+  const [ceoSaving, setCeoSaving] = useState(false);
+
   // CSV state
   const [csvData, setCsvData] = useState<CSVUpload | null>(null);
 
@@ -130,6 +148,7 @@ export function DataEntry() {
     loadMonthly();
     loadAcquisitions();
     loadChurnEvents();
+    loadCeoNotes();
   }, []);
 
   const loadDaily = async () => {
@@ -494,6 +513,56 @@ export function DataEntry() {
     if (churnCsvInputRef.current) churnCsvInputRef.current.value = "";
   };
 
+  // --- CEO Notes handlers ---
+  const loadCeoNotes = async () => {
+    setCeoLoading(true);
+    const { data, error } = await supabase
+      .from("ceo_notes")
+      .select("*")
+      .order("date", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load CEO notes", description: error.message, variant: "destructive" });
+    } else {
+      setCeoEntries((data as unknown as CEONotesEntry[]) || []);
+    }
+    setCeoLoading(false);
+  };
+
+  const addCeoNote = async () => {
+    if (!ceoDraft.date) {
+      toast({ title: "Date required", variant: "destructive" });
+      return;
+    }
+    if (!ceoDraft.biggest_win.trim() && !ceoDraft.biggest_bottleneck.trim() && !ceoDraft.todays_focus.trim()) {
+      toast({ title: "Fill in at least one field", variant: "destructive" });
+      return;
+    }
+    setCeoSaving(true);
+    const { id, ...payload } = ceoDraft;
+    const { error } = await supabase
+      .from("ceo_notes")
+      .upsert(payload as any, { onConflict: "date" });
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "CEO note saved" });
+      setCeoDraft({ ...EMPTY_CEO, date: todayStr() });
+      setShowCeoForm(false);
+      await loadCeoNotes();
+    }
+    setCeoSaving(false);
+  };
+
+  const removeCeoNote = async (entry: CEONotesEntry) => {
+    if (!entry.id) return;
+    const { error } = await supabase.from("ceo_notes").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+    } else {
+      setCeoEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
+  };
+
   // --- CSV handlers ---
   const [csvImporting, setCsvImporting] = useState(false);
 
@@ -608,6 +677,10 @@ export function DataEntry() {
           <TabsTrigger value="acquisition" className="text-xs gap-1.5">
             <Megaphone className="w-3.5 h-3.5" />
             Acquisition
+          </TabsTrigger>
+          <TabsTrigger value="ceo" className="text-xs gap-1.5">
+            <NotebookPen className="w-3.5 h-3.5" />
+            CEO Notes
           </TabsTrigger>
           <TabsTrigger value="churn" className="text-xs gap-1.5">
             <UserMinus className="w-3.5 h-3.5" />
@@ -1079,6 +1152,122 @@ export function DataEntry() {
                       <p className="text-[10px] text-muted-foreground mt-1">...and {csvData.rowCount - 10} more rows</p>
                     )}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== CEO NOTES TAB ========== */}
+        <TabsContent value="ceo" className="space-y-4 mt-4">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground font-display">CEO Daily Notes</CardTitle>
+                {!showCeoForm && (
+                  <Button size="sm" onClick={() => setShowCeoForm(true)} className="text-xs">
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />Add Entry
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showCeoForm && (
+                <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Date</label>
+                      <Input
+                        type="date"
+                        value={ceoDraft.date}
+                        onChange={(e) => setCeoDraft((d) => ({ ...d, date: e.target.value }))}
+                        className="h-8 text-xs bg-background font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Biggest Win</label>
+                    <Input
+                      value={ceoDraft.biggest_win}
+                      onChange={(e) => setCeoDraft((d) => ({ ...d, biggest_win: e.target.value }))}
+                      placeholder="What went well today?"
+                      className="h-8 text-xs bg-background"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Biggest Bottleneck</label>
+                    <Input
+                      value={ceoDraft.biggest_bottleneck}
+                      onChange={(e) => setCeoDraft((d) => ({ ...d, biggest_bottleneck: e.target.value }))}
+                      placeholder="What's slowing you down?"
+                      className="h-8 text-xs bg-background"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Today's Focus</label>
+                    <Input
+                      value={ceoDraft.todays_focus}
+                      onChange={(e) => setCeoDraft((d) => ({ ...d, todays_focus: e.target.value }))}
+                      placeholder="What's the #1 priority?"
+                      className="h-8 text-xs bg-background"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Notes (optional)</label>
+                    <Textarea
+                      value={ceoDraft.notes}
+                      onChange={(e) => setCeoDraft((d) => ({ ...d, notes: e.target.value }))}
+                      placeholder="Any extra context for AI..."
+                      className="text-xs bg-background min-h-[60px]"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={addCeoNote} disabled={ceoSaving} className="text-xs">
+                      {ceoSaving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+                      Save Entry
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setShowCeoForm(false); setCeoDraft({ ...EMPTY_CEO, date: todayStr() }); }} className="text-xs">Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              {ceoLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <span className="text-sm">Loading CEO notes...</span>
+                </div>
+              ) : ceoEntries.length === 0 && !showCeoForm ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <NotebookPen className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No CEO notes yet</p>
+                  <p className="text-xs mt-1">Track your daily wins, bottlenecks, and focus areas</p>
+                </div>
+              ) : ceoEntries.length > 0 && (
+                <div className="space-y-3">
+                  {ceoEntries.map((entry) => (
+                    <div key={entry.id} className="p-3 rounded-lg border border-border bg-secondary/30 group">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className="text-xs font-mono font-medium text-foreground">{entry.date}</p>
+                        <button onClick={() => removeCeoNote(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        {entry.biggest_win && (
+                          <p className="text-xs"><span className="text-muted-foreground font-medium">Win:</span> <span className="text-foreground">{entry.biggest_win}</span></p>
+                        )}
+                        {entry.biggest_bottleneck && (
+                          <p className="text-xs"><span className="text-muted-foreground font-medium">Bottleneck:</span> <span className="text-foreground">{entry.biggest_bottleneck}</span></p>
+                        )}
+                        {entry.todays_focus && (
+                          <p className="text-xs"><span className="text-muted-foreground font-medium">Focus:</span> <span className="text-foreground">{entry.todays_focus}</span></p>
+                        )}
+                        {entry.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">{entry.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
