@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ceo_notes: {
+        Row: {
+          biggest_bottleneck: string
+          biggest_win: string
+          created_at: string
+          date: string
+          id: string
+          notes: string
+          todays_focus: string
+          updated_at: string
+        }
+        Insert: {
+          biggest_bottleneck?: string
+          biggest_win?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string
+          todays_focus?: string
+          updated_at?: string
+        }
+        Update: {
+          biggest_bottleneck?: string
+          biggest_win?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string
+          todays_focus?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       churn_events: {
         Row: {
           created_at: string
