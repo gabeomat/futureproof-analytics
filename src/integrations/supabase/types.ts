@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ceo_notes: {
+        Row: {
+          biggest_bottleneck: string
+          biggest_win: string
+          created_at: string
+          date: string
+          id: string
+          notes: string
+          todays_focus: string
+          updated_at: string
+        }
+        Insert: {
+          biggest_bottleneck?: string
+          biggest_win?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string
+          todays_focus?: string
+          updated_at?: string
+        }
+        Update: {
+          biggest_bottleneck?: string
+          biggest_win?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string
+          todays_focus?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       churn_events: {
         Row: {
           created_at: string
@@ -184,39 +217,6 @@ export type Database = {
           month?: string
           new_revenue?: number
           revenue_churn?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      ceo_notes: {
-        Row: {
-          id: string
-          date: string
-          biggest_win: string
-          biggest_bottleneck: string
-          todays_focus: string
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          date: string
-          biggest_win?: string
-          biggest_bottleneck?: string
-          todays_focus?: string
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          date?: string
-          biggest_win?: string
-          biggest_bottleneck?: string
-          todays_focus?: string
-          notes?: string | null
-          created_at?: string
           updated_at?: string
         }
         Relationships: []
