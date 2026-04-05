@@ -39,18 +39,6 @@ When images are shared with you, analyze them thoroughly. If they are ad creativ
 - Target audience alignment
 - Suggestions for improvement based on the business data you have
 
-### Strategic Memory Commands
-When the user says phrases like "save this", "summarize and save", "remember this", or "save this to memory", you should:
-1. Distill the key strategic insights, decisions, and recommendations from the conversation so far into a concise summary (200-500 words).
-2. Wrap your summary in special markers so the system can save it automatically.
-3. Format your response like this:
-
-:::SAVE_SUMMARY:::
-[Your concise summary of key strategic insights, decisions, data points, and action items from this conversation]
-:::END_SUMMARY:::
-
-After the markers, confirm to the user that the strategic note has been saved and briefly list what was captured.
-
 Be direct, specific, and use actual numbers from the data. Avoid generic advice. Every recommendation should tie back to the data provided.`;
 
 serve(async (req) => {
@@ -60,7 +48,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, messages, strategyNotes } = body;
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, messages, recentConversations } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -100,24 +88,31 @@ ${JSON.stringify(churnEvents || [], null, 2)}
 **Current Skool Members (from latest member export):**
 ${JSON.stringify(skoolMembers || [], null, 2)}`;
 
-    // Inject past strategy notes with dates
-    if (strategyNotes && strategyNotes.length > 0) {
-      dataContext += `\n\n**Previous Strategic Memory (saved insights from past sessions):**\n`;
-      for (const note of strategyNotes) {
-        const date = new Date(note.created_at).toLocaleDateString("en-US", {
+    // Inject recent conversation context (replaces old strategy_notes)
+    if (recentConversations && recentConversations.length > 0) {
+      dataContext += `\n\n**Recent Session Context (from your last ${recentConversations.length} conversation${recentConversations.length > 1 ? 's' : ''}):**\n`;
+      for (const conv of recentConversations) {
+        const date = new Date(conv.created_at).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
         });
-        dataContext += `\n--- Strategy Note (saved ${date}) ---\n${note.summary}\n`;
+        dataContext += `\n--- Session from ${date}: "${conv.title}" ---\n`;
+        // Include only assistant messages, trimmed to manage token usage
+        const assistantMsgs = (conv.messages || [])
+          .filter((m: { role: string }) => m.role === "assistant")
+          .map((m: { content: string }) => m.content);
+        for (const content of assistantMsgs) {
+          const trimmed = content.length > 2000 ? content.slice(0, 2000) + "\n[...trimmed for brevity]" : content;
+          dataContext += trimmed + "\n";
+        }
       }
-      dataContext += `\nUse these past notes for context. Reference how long ago decisions were made when relevant (e.g. "Back in March we decided to..."). Note if previous recommendations have likely played out by now or if it's too early to judge.`;
+      dataContext += `\nUse these past sessions for context. Reference previous recommendations when relevant, and note whether enough time has passed to evaluate their impact.`;
     }
 
     // Build messages for the AI, supporting multimodal content (text + images)
     const buildContent = (msg: { role: string; content: string; imageUrls?: string[] }) => {
       if (msg.imageUrls && msg.imageUrls.length > 0) {
-        // Multimodal message: text + images
         const parts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
         if (msg.content) {
           parts.push({ type: "text", text: msg.content });

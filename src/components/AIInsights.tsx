@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send, History, Plus, Trash2, BookMarked, ImagePlus, X } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -13,21 +13,6 @@ const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-m
 
 type Msg = { role: "user" | "assistant"; content: string; imageUrls?: string[] };
 type Conversation = { id: string; title: string; messages: Msg[]; created_at: string; updated_at: string };
-type StrategyNote = { id: string; summary: string; created_at: string };
-
-const SAVE_START = ":::SAVE_SUMMARY:::";
-const SAVE_END = ":::END_SUMMARY:::";
-
-function extractAndCleanSummary(content: string): { cleanContent: string; summary: string | null } {
-  const startIdx = content.indexOf(SAVE_START);
-  const endIdx = content.indexOf(SAVE_END);
-  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
-    return { cleanContent: content, summary: null };
-  }
-  const summary = content.slice(startIdx + SAVE_START.length, endIdx).trim();
-  const cleanContent = (content.slice(0, startIdx) + content.slice(endIdx + SAVE_END.length)).trim();
-  return { cleanContent, summary };
-}
 
 async function streamResponse(
   body: Record<string, unknown>,
@@ -82,14 +67,13 @@ async function streamResponse(
 
 export function AIInsights() {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<"chat" | "history" | "notes">("chat");
+  const [view, setView] = useState<"chat" | "history">("chat");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [dataPayload, setDataPayload] = useState<Record<string, unknown> | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [strategyNotes, setStrategyNotes] = useState<StrategyNote[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -137,25 +121,21 @@ export function AIInsights() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const fetchStrategyNotes = async () => {
-    const { data } = await supabase
-      .from("strategy_notes")
-      .select("id, summary, created_at")
-      .order("created_at", { ascending: true });
-    const notes = (data as unknown as StrategyNote[]) || [];
-    setStrategyNotes(notes);
-    return notes;
-  };
-
   const fetchDataPayload = async () => {
-    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, { data: churnEvents }, { data: skoolMembers }, notes] = await Promise.all([
+    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, { data: churnEvents }, { data: skoolMembers }, { data: recentConvs }] = await Promise.all([
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("monthly_revenue").select("*").order("month", { ascending: false }).limit(12),
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).limit(60),
       supabase.from("churn_events").select("*").order("date", { ascending: false }).limit(200),
       (supabase.from as any)("skool_members").select("*").order("joined_date", { ascending: false }).limit(500),
-      fetchStrategyNotes(),
+      supabase.from("ai_conversations").select("id, title, messages, created_at").order("updated_at", { ascending: false }).limit(3),
     ]);
+
+    // Pick the 2 most recent conversations excluding the current one
+    const recentConversations = ((recentConvs as unknown as Conversation[]) || [])
+      .filter((c) => c.id !== conversationId)
+      .slice(0, 2);
+
     // Compute real rolling 30-day ad spend from acquisition data
     let rolling30AdSpend = 0;
     if (acquisitionData && acquisitionData.length > 0) {
@@ -184,29 +164,10 @@ export function AIInsights() {
       acquisitionData,
       churnEvents,
       skoolMembers,
-      strategyNotes: notes,
+      recentConversations,
     };
     setDataPayload(payload);
     return payload;
-  };
-
-  const saveSummaryNote = async (summary: string, convId: string | null) => {
-    await supabase.from("strategy_notes").insert([
-      {
-        summary,
-        source_conversation_id: convId,
-      },
-    ]);
-    toast.success("Strategic note saved to memory");
-    await fetchStrategyNotes();
-  };
-
-  const handleStreamComplete = async (rawContent: string, convId: string | null): Promise<string> => {
-    const { cleanContent, summary } = extractAndCleanSummary(rawContent);
-    if (summary) {
-      await saveSummaryNote(summary, convId);
-    }
-    return cleanContent;
   };
 
   const saveConversation = async (msgs: Msg[], convId: string | null) => {
@@ -262,13 +223,6 @@ export function AIInsights() {
     toast.success("Conversation deleted");
   };
 
-  const deleteNote = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await supabase.from("strategy_notes").delete().eq("id", id);
-    setStrategyNotes((prev) => prev.filter((n) => n.id !== id));
-    toast.success("Strategy note deleted");
-  };
-
   const startNewAnalysis = async () => {
     setView("chat");
     setMessages([]);
@@ -287,8 +241,7 @@ export function AIInsights() {
           setMessages([{ role: "assistant", content }]);
         },
         async () => {
-          const cleanContent = await handleStreamComplete(assistantContentRef.current, null);
-          const finalMsgs: Msg[] = [{ role: "assistant", content: cleanContent }];
+          const finalMsgs: Msg[] = [{ role: "assistant", content: assistantContentRef.current }];
           setMessages(finalMsgs);
           setLoading(false);
           await saveConversation(finalMsgs, null);
@@ -303,9 +256,7 @@ export function AIInsights() {
 
   const openPanel = async () => {
     setOpen(true);
-    // If we already have messages loaded, just show them
     if (messages.length > 0) return;
-    // Try to load the most recent conversation
     const { data } = await supabase
       .from("ai_conversations")
       .select("*")
@@ -352,8 +303,7 @@ export function AIInsights() {
           });
         },
         async () => {
-          const cleanContent = await handleStreamComplete(assistantContentRef.current, conversationId);
-          const finalMsgs = [...updatedMessages, { role: "assistant" as const, content: cleanContent }];
+          const finalMsgs = [...updatedMessages, { role: "assistant" as const, content: assistantContentRef.current }];
           setMessages(finalMsgs);
           setLoading(false);
           await saveConversation(finalMsgs, conversationId);
@@ -378,11 +328,6 @@ export function AIInsights() {
     loadConversations();
   };
 
-  const showNotes = () => {
-    setView("notes");
-    fetchStrategyNotes();
-  };
-
   return (
     <>
       <Button onClick={openPanel} variant="outline" size="sm" className="gap-1.5">
@@ -398,7 +343,7 @@ export function AIInsights() {
                 Strategic AI Analysis
               </SheetTitle>
               <SheetDescription>
-                Say &quot;save this&quot; or &quot;summarize and save&quot; to store key insights for future sessions
+                Context from your last 2 sessions is automatically included
               </SheetDescription>
             </SheetHeader>
             <div className="flex gap-2 mt-3">
@@ -420,20 +365,6 @@ export function AIInsights() {
                 <History className="w-3.5 h-3.5" />
                 History
               </Button>
-              <Button
-                variant={view === "notes" ? "default" : "outline"}
-                size="sm"
-                onClick={showNotes}
-                className="gap-1.5"
-              >
-                <BookMarked className="w-3.5 h-3.5" />
-                Memory
-                {strategyNotes.length > 0 && (
-                  <span className="ml-1 bg-primary/20 text-primary text-xs rounded-full px-1.5">
-                    {strategyNotes.length}
-                  </span>
-                )}
-              </Button>
               {view === "chat" && (
                 <Button
                   variant="outline"
@@ -449,45 +380,7 @@ export function AIInsights() {
             </div>
           </div>
 
-          {view === "notes" ? (
-            <ScrollArea className="flex-1 px-6">
-              <div className="space-y-3 py-4">
-                {strategyNotes.length === 0 ? (
-                  <p className="text-muted-foreground text-sm py-8 text-center">
-                    No strategic notes saved yet. During a chat, say &quot;save this&quot; to store key insights.
-                  </p>
-                ) : (
-                  strategyNotes.map((note) => (
-                    <div
-                      key={note.id}
-                      className="p-4 rounded-lg border border-border bg-accent/30"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {new Date(note.created_at).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 shrink-0"
-                          onClick={(e) => deleteNote(note.id, e)}
-                        >
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{note.summary}</ReactMarkdown>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          ) : view === "history" ? (
+          {view === "history" ? (
             <ScrollArea className="flex-1 px-6">
               <div className="space-y-2 py-4">
                 {loadingHistory ? (
