@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/MetricCard";
 import { MRRChart, RevenueBreakdownChart } from "@/components/RevenueChart";
 import { ChurnChart } from "@/components/ChurnAnalysis";
@@ -14,6 +16,7 @@ import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 type Tab = "overview" | "projections" | "data-entry";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const currentSnapshot = useLiveMetrics();
 
@@ -61,6 +64,13 @@ const Index = () => {
                 Data Entry
               </button>
             </div>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); navigate("/auth"); }}
+              className="ml-3 p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
