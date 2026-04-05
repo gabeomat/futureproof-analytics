@@ -495,30 +495,84 @@ export function DataEntry() {
   };
 
   // --- CSV handlers ---
+  const [csvImporting, setCsvImporting] = useState(false);
+
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setCsvImporting(true);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const lines = text.split("\n").filter((l) => l.trim());
-      if (lines.length < 2) {
-        toast({ title: "Invalid CSV", description: "File must have headers and at least one row.", variant: "destructive" });
-        return;
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter((l) => l.trim());
+        if (lines.length < 2) {
+          toast({ title: "Invalid CSV", description: "File must have headers and at least one row.", variant: "destructive" });
+          setCsvImporting(false);
+          return;
+        }
+        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+        const headersLower = headers.map((h) => h.toLowerCase());
+        const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
+
+        // Show preview
+        setCsvData({
+          fileName: file.name,
+          uploadedAt: new Date().toLocaleString(),
+          rowCount: rows.length,
+          previewHeaders: headers,
+          previewRows: rows.slice(0, 10),
+        });
+
+        // Map CSV columns to skool_members table
+        const findCol = (names: string[]) => headersLower.findIndex((h) => names.includes(h));
+        const firstNameIdx = findCol(["firstname", "first_name", "first name"]);
+        const lastNameIdx = findCol(["lastname", "last_name", "last name"]);
+        const emailIdx = findCol(["email"]);
+        const joinedIdx = findCol(["joineddate", "joined_date", "joined date", "joined"]);
+        const priceIdx = findCol(["price", "price_point"]);
+        const tierIdx = findCol(["tier", "level"]);
+        const ltvIdx = findCol(["ltv", "lifetime value"]);
+        const statusIdx = findCol(["status"]);
+        const lastActiveIdx = findCol(["lastactive", "last_active", "last active"]);
+
+        const records = rows.filter((r) => r.length > 1).map((r) => ({
+          first_name: firstNameIdx >= 0 ? r[firstNameIdx] || null : null,
+          last_name: lastNameIdx >= 0 ? r[lastNameIdx] || null : null,
+          email: emailIdx >= 0 ? r[emailIdx] || null : null,
+          joined_date: joinedIdx >= 0 ? r[joinedIdx] || null : null,
+          price: priceIdx >= 0 ? r[priceIdx] || null : null,
+          tier: tierIdx >= 0 ? r[tierIdx] || null : null,
+          ltv: ltvIdx >= 0 ? r[ltvIdx] || null : null,
+          status: statusIdx >= 0 ? r[statusIdx] || null : null,
+          last_active: lastActiveIdx >= 0 ? r[lastActiveIdx] || null : null,
+        }));
+
+        if (records.length === 0) {
+          toast({ title: "No valid rows found", variant: "destructive" });
+          setCsvImporting(false);
+          return;
+        }
+
+        // Clear existing members and replace with new CSV data
+        await supabase.from("skool_members").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        for (let i = 0; i < records.length; i += 50) {
+          const chunk = records.slice(i, i + 50);
+          const { error } = await supabase.from("skool_members").insert(chunk as any);
+          if (error) {
+            toast({ title: "Import failed", description: error.message, variant: "destructive" });
+            setCsvImporting(false);
+            return;
+          }
+        }
+
+        toast({ title: "CSV uploaded and saved", description: `${file.name} — ${records.length} members saved to database. AI Insights now has access to this data.` });
+      } catch (err) {
+        toast({ title: "Import error", description: String(err), variant: "destructive" });
       }
-      const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-      const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
-
-      setCsvData({
-        fileName: file.name,
-        uploadedAt: new Date().toLocaleString(),
-        rowCount: rows.length,
-        previewHeaders: headers,
-        previewRows: rows.slice(0, 10),
-      });
-
-      toast({ title: "CSV uploaded", description: `${file.name} — ${rows.length} rows loaded. This replaces any previous CSV.` });
+      setCsvImporting(false);
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -981,9 +1035,9 @@ export function DataEntry() {
                   onChange={handleCSVUpload}
                   className="hidden"
                 />
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} className="text-xs">
-                  <FileUp className="w-3.5 h-3.5 mr-1.5" />
-                  {csvData ? "Replace CSV" : "Choose CSV File"}
+                <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={csvImporting} className="text-xs">
+                  {csvImporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileUp className="w-3.5 h-3.5 mr-1.5" />}
+                  {csvImporting ? "Saving to database..." : csvData ? "Replace CSV" : "Choose CSV File"}
                 </Button>
               </div>
 
