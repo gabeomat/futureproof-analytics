@@ -28,7 +28,7 @@ How to handle grandfathered members on lower pricing. Recommend specific tactics
 Assess LTV/CAC ratio health. Is ad spend efficient? What's the payback period? If Skool member data is available, analyze the active member base composition, join date distribution, and engagement tiers.
 
 ## 🎯 90-Day Action Plan
-Provide 5-7 specific, prioritized actions with expected impact on MRR.
+Provide 5-7 specific, prioritized actions with expected impact on MRR. If CEO daily notes are available, factor in the founder's current bottlenecks and focus areas when prioritizing — recommendations that address active bottlenecks should rank higher. Reference recent wins to reinforce what's working.
 
 For follow-up questions, respond naturally and conversationally while still being data-driven and specific. Reference the data you have whenever relevant.
 
@@ -48,7 +48,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, messages, recentConversations } = body;
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, ceoNotes, messages, recentConversations } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -86,7 +86,11 @@ Fields: date (churn date), first_name, last_name, email, price_point (their mont
 ${JSON.stringify(churnEvents || [], null, 2)}
 
 **Current Skool Members (from latest member export):**
-${JSON.stringify(skoolMembers || [], null, 2)}`;
+${JSON.stringify(skoolMembers || [], null, 2)}
+
+**CEO Daily Notes (founder's wins, bottlenecks, focus areas, and context):**
+Fields: date, biggest_win, biggest_bottleneck, todays_focus, notes (optional free-text context)
+${JSON.stringify(ceoNotes || [], null, 2)}`;
 
     // Inject recent conversation context (replaces old strategy_notes)
     if (recentConversations && recentConversations.length > 0) {
