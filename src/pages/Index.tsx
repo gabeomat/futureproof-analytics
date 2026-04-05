@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/MetricCard";
 import { MRRChart, RevenueBreakdownChart } from "@/components/RevenueChart";
 import { ChurnChart } from "@/components/ChurnAnalysis";
