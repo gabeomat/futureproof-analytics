@@ -63,6 +63,13 @@ const Index = () => {
                 Data Entry
               </button>
             </div>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); navigate("/auth"); }}
+              className="ml-3 p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
