@@ -1,27 +1,34 @@
 
 
-## Replace Hardcoded Ad Spend with Real Data from Database
+## Replace Strategy Notes with Recent Conversation Context
 
-### What Changes
+### Problem
+- The "save to memory" feature relies on the AI outputting special markers (`:::SAVE_SUMMARY:::`), which is unreliable — your last saved note was from March 27 despite using it today.
+- Full conversations are already stored in `ai_conversations` with timestamps.
+- Maintaining a separate `strategy_notes` table adds complexity for little value.
 
-Replace the static `monthlyAdSpend: 3500` in the snapshot with a rolling calculation from your `daily_acquisitions` table. You'll also be able to bulk-import your last 60 days of ad metrics via CSV.
+### Approach
+Instead of strategy_notes, automatically pull the last 1-2 conversations from `ai_conversations` and inject their assistant responses as context into new AI sessions. This is zero-effort for you — no "save" button needed.
 
-### Step 1: CSV Import for Historical Ad Data
+### Changes
 
-Add a CSV import button to the Acquisition tab in Data Entry that accepts your 60-day history file. Expected columns: `date, ad_spend, ad_conv_27, ad_conv_47, ad_conv_333, organic_27, organic_47, organic_333`. Each row upserts into the existing `daily_acquisitions` table (no schema changes needed).
+**1. Edge function (`analyze-metrics/index.ts`)**
+- Remove `strategyNotes` from the input payload
+- Accept a new `recentConversations` field (array of `{title, messages, created_at}`)
+- Replace the "Previous Strategic Memory" context block with a "Recent Session Context" block that summarizes the last 1-2 conversations (just the assistant messages, trimmed to ~2000 chars each to manage token usage)
+- Remove the `:::SAVE_SUMMARY:::` / `:::END_SUMMARY:::` instructions from the system prompt
 
-### Step 2: Compute Real Ad Spend in `useLiveMetrics`
+**2. AIInsights component (`src/components/AIInsights.tsx`)**
+- Remove `fetchStrategyNotes`, `saveSummaryNote`, `handleStreamComplete` summary extraction, `deleteNote`, and all strategy_notes state
+- In `fetchDataPayload`, query `ai_conversations` for the 2 most recent conversations (excluding the current one) and attach them to the payload as `recentConversations`
+- Remove the "Memory" tab/UI from the panel (the notes list, delete buttons, etc.)
+- Remove the `extractAndCleanSummary` helper
 
-Update the `useLiveMetrics` hook to calculate a rolling 30-day ad spend from `daily_acquisitions` data and replace `monthlyAdSpend` with that real number. This means every dashboard metric referencing ad spend will automatically reflect your actual recent spending.
+**3. Optional cleanup**
+- Drop the `strategy_notes` table via migration (can do later if you want to keep old notes for reference)
 
-### Step 3: Update AI Data Context
-
-The AI edge function already receives `acquisitionData`. Update `AIInsights.tsx` to also compute and pass a `monthlyAdSpend` override from the acquisition data so the AI strategist sees your real spend instead of $3,500.
-
-### What You Get
-
-- Upload your 60-day CSV once to backfill history
-- `monthlyAdSpend` on the dashboard becomes a live rolling 30-day total from real entries
-- The AI advisor references your actual ad spend trends instead of a static estimate
-- Each new daily entry you log keeps it continuously updated
+### What you get
+- Every AI session automatically has context from your last 1-2 conversations — no manual "save" step
+- Simpler UI without the memory management tab
+- More reliable continuity between sessions
 
