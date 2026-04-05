@@ -556,11 +556,11 @@ export function DataEntry() {
         }
 
         // Clear existing members and replace with new CSV data
-        await supabase.from("skool_members").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        await (supabase.from as any)("skool_members").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
         for (let i = 0; i < records.length; i += 50) {
           const chunk = records.slice(i, i + 50);
-          const { error } = await supabase.from("skool_members").insert(chunk as any);
+          const { error } = await (supabase.from as any)("skool_members").insert(chunk as any);
           if (error) {
             toast({ title: "Import failed", description: error.message, variant: "destructive" });
             setCsvImporting(false);

@@ -153,7 +153,7 @@ export function AIInsights() {
       supabase.from("monthly_revenue").select("*").order("month", { ascending: false }).limit(12),
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).limit(60),
       supabase.from("churn_events").select("*").order("date", { ascending: false }).limit(200),
-      supabase.from("skool_members").select("*").order("joined_date", { ascending: false }).limit(500),
+      (supabase.from as any)("skool_members").select("*").order("joined_date", { ascending: false }).limit(500),
       fetchStrategyNotes(),
     ]);
     // Compute real rolling 30-day ad spend from acquisition data
