@@ -16,6 +16,7 @@ import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 type Tab = "overview" | "projections" | "data-entry";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const currentSnapshot = useLiveMetrics();
 
