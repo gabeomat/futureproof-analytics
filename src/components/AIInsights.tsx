@@ -247,7 +247,12 @@ export function AIInsights() {
           const finalMsgs: Msg[] = [{ role: "assistant", content: assistantContentRef.current }];
           setMessages(finalMsgs);
           setLoading(false);
-          await saveConversation(finalMsgs, null);
+          const savedId = await saveConversation(finalMsgs, null);
+          // Auto-extract and save insights
+          if (savedId && assistantContentRef.current) {
+            const ok = await extractAndSaveInsights(assistantContentRef.current, savedId);
+            if (ok) toast.success("Insights saved automatically");
+          }
         },
       );
     } catch (e: unknown) {
@@ -309,7 +314,12 @@ export function AIInsights() {
           const finalMsgs = [...updatedMessages, { role: "assistant" as const, content: assistantContentRef.current }];
           setMessages(finalMsgs);
           setLoading(false);
-          await saveConversation(finalMsgs, conversationId);
+          const savedId = await saveConversation(finalMsgs, conversationId);
+          // Auto-extract and save insights from latest assistant response
+          if (savedId && assistantContentRef.current) {
+            const ok = await extractAndSaveInsights(assistantContentRef.current, savedId);
+            if (ok) toast.success("Insights saved automatically");
+          }
         },
       );
     } catch (e: unknown) {
