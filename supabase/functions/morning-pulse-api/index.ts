@@ -12,8 +12,11 @@ serve(async (req) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const queryToken = url.searchParams.get("token");
     const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
+    const headerToken = authHeader?.replace("Bearer ", "");
+    const token = headerToken || queryToken;
     const expectedToken = Deno.env.get("PULSE_API_TOKEN");
 
     if (!expectedToken || token !== expectedToken) {
