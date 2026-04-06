@@ -47,6 +47,7 @@ serve(async (req) => {
       aiConversations,
       monthlyRevenue,
       strategyNotes,
+      aiInsights,
     ] = await Promise.all([
       supabase.from("daily_metrics").select("*").gte("date", sevenDaysStr).order("date", { ascending: false }),
       supabase.from("daily_acquisitions").select("*").gte("date", sevenDaysStr).order("date", { ascending: false }),
