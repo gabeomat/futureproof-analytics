@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X, BookmarkPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -330,6 +330,62 @@ export function AIInsights() {
     loadConversations();
   };
 
+  const summarizeConversation = async () => {
+    if (loading || messages.length === 0) return;
+    setLoading(true);
+    assistantContentRef.current = "";
+
+    const summaryRequest: Msg = {
+      role: "user",
+      content: "Please provide a concise strategic summary of our entire conversation. Highlight the key insights, recommendations, and action items. This will be saved as a strategy note for future reference.",
+    };
+    const updatedMessages = [...messages, summaryRequest];
+    setMessages(updatedMessages);
+
+    try {
+      const payload = dataPayload || (await fetchDataPayload());
+
+      await streamResponse(
+        { ...payload, messages: updatedMessages },
+        (delta) => {
+          assistantContentRef.current += delta;
+          const content = assistantContentRef.current;
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content } : m));
+            }
+            return [...prev, { role: "assistant", content }];
+          });
+        },
+        async () => {
+          const finalMsgs = [...updatedMessages, { role: "assistant" as const, content: assistantContentRef.current }];
+          setMessages(finalMsgs);
+          setLoading(false);
+          await saveConversation(finalMsgs, conversationId);
+
+          // Save summary to strategy_notes
+          const { error } = await supabase.from("strategy_notes").insert([
+            {
+              summary: assistantContentRef.current,
+              source_conversation_id: conversationId,
+            },
+          ]);
+          if (error) {
+            console.error("Failed to save strategy note:", error);
+            toast.error("Failed to save strategy note");
+          } else {
+            toast.success("Strategy summary saved!");
+          }
+        },
+      );
+    } catch (e: unknown) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Failed to summarize");
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Button onClick={openPanel} variant="outline" size="sm" className="gap-1.5">
@@ -368,16 +424,29 @@ export function AIInsights() {
                 History
               </Button>
               {view === "chat" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={startNewAnalysis}
-                  disabled={loading}
-                  className="gap-1.5 ml-auto"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Analysis
-                </Button>
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={summarizeConversation}
+                    disabled={loading || messages.length === 0}
+                    className="gap-1.5"
+                    title="Summarize & save to strategy notes"
+                  >
+                    <BookmarkPlus className="w-3.5 h-3.5" />
+                    Summarize
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startNewAnalysis}
+                    disabled={loading}
+                    className="gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Analysis
+                  </Button>
+                </div>
               )}
             </div>
           </div>
