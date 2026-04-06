@@ -38,6 +38,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_insights: {
+        Row: {
+          created_at: string
+          full_summary: string
+          id: string
+          key_metrics: string
+          opportunities: string
+          priority_actions: string
+          session_date: string
+          source_conversation_id: string | null
+          warnings: string
+        }
+        Insert: {
+          created_at?: string
+          full_summary?: string
+          id?: string
+          key_metrics?: string
+          opportunities?: string
+          priority_actions?: string
+          session_date?: string
+          source_conversation_id?: string | null
+          warnings?: string
+        }
+        Update: {
+          created_at?: string
+          full_summary?: string
+          id?: string
+          key_metrics?: string
+          opportunities?: string
+          priority_actions?: string
+          session_date?: string
+          source_conversation_id?: string | null
+          warnings?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_source_conversation_id_fkey"
+            columns: ["source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ceo_notes: {
         Row: {
           biggest_bottleneck: string
