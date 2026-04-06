@@ -47,6 +47,7 @@ serve(async (req) => {
       aiConversations,
       monthlyRevenue,
       strategyNotes,
+      aiInsights,
     ] = await Promise.all([
       supabase.from("daily_metrics").select("*").gte("date", sevenDaysStr).order("date", { ascending: false }),
       supabase.from("daily_acquisitions").select("*").gte("date", sevenDaysStr).order("date", { ascending: false }),
@@ -55,6 +56,7 @@ serve(async (req) => {
       supabase.from("ai_conversations").select("*").gte("created_at", fourteenDaysStr).order("created_at", { ascending: false }),
       supabase.from("monthly_revenue").select("*").order("month", { ascending: false }).limit(1),
       supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(1),
+      supabase.from("ai_insights").select("*").order("session_date", { ascending: false }).limit(3),
     ]);
 
     return new Response(
@@ -66,6 +68,7 @@ serve(async (req) => {
         ai_conversations: aiConversations.data ?? [],
         monthly_revenue: monthlyRevenue.data ?? [],
         strategy_notes: strategyNotes.data ?? [],
+        ai_insights: (aiInsights as any).data ?? [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
