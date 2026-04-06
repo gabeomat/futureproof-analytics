@@ -226,6 +226,18 @@ export function AIInsights() {
     toast.success("Conversation deleted");
   };
 
+  const saveInsightsFromConversation = async (conv: Conversation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const lastAssistant = [...conv.messages].reverse().find((m) => m.role === "assistant");
+    if (!lastAssistant) {
+      toast.error("No assistant response found in this conversation");
+      return;
+    }
+    const ok = await extractAndSaveInsights(lastAssistant.content, conv.id);
+    if (ok) toast.success("Insights extracted and saved!");
+    else toast.error("Failed to save insights");
+  };
+
   const startNewAnalysis = async () => {
     setView("chat");
     setMessages([]);
