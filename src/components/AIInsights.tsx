@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X, BookmarkPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
