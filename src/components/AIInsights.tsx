@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X, Save } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -8,7 +8,6 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { currentSnapshot, historicalRevenue, historicalChurn, monthlyMembers, annualMembers } from "@/lib/data";
 import { toast } from "sonner";
-import { extractAndSaveInsights } from "@/lib/insightExtractor";
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-metrics`;
 
@@ -226,18 +225,6 @@ export function AIInsights() {
     toast.success("Conversation deleted");
   };
 
-  const saveInsightsFromConversation = async (conv: Conversation, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const lastAssistant = [...conv.messages].reverse().find((m) => m.role === "assistant");
-    if (!lastAssistant) {
-      toast.error("No assistant response found in this conversation");
-      return;
-    }
-    const ok = await extractAndSaveInsights(lastAssistant.content, conv.id);
-    if (ok) toast.success("Insights extracted and saved!");
-    else toast.error("Failed to save insights");
-  };
-
   const startNewAnalysis = async () => {
     setView("chat");
     setMessages([]);
@@ -259,12 +246,7 @@ export function AIInsights() {
           const finalMsgs: Msg[] = [{ role: "assistant", content: assistantContentRef.current }];
           setMessages(finalMsgs);
           setLoading(false);
-          const savedId = await saveConversation(finalMsgs, null);
-          // Auto-extract and save insights
-          if (savedId && assistantContentRef.current) {
-            const ok = await extractAndSaveInsights(assistantContentRef.current, savedId);
-            if (ok) toast.success("Insights saved automatically");
-          }
+          await saveConversation(finalMsgs, null);
         },
       );
     } catch (e: unknown) {
@@ -326,12 +308,7 @@ export function AIInsights() {
           const finalMsgs = [...updatedMessages, { role: "assistant" as const, content: assistantContentRef.current }];
           setMessages(finalMsgs);
           setLoading(false);
-          const savedId = await saveConversation(finalMsgs, conversationId);
-          // Auto-extract and save insights from latest assistant response
-          if (savedId && assistantContentRef.current) {
-            const ok = await extractAndSaveInsights(assistantContentRef.current, savedId);
-            if (ok) toast.success("Insights saved automatically");
-          }
+          await saveConversation(finalMsgs, conversationId);
         },
       );
     } catch (e: unknown) {
@@ -431,25 +408,14 @@ export function AIInsights() {
                             {new Date(conv.created_at).toLocaleDateString()} · {conv.messages.length} messages
                           </p>
                         </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => saveInsightsFromConversation(conv, e)}
-                            title="Save Insights"
-                          >
-                            <Save className="w-3.5 h-3.5 text-primary" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => deleteConversation(conv.id, e)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={(e) => deleteConversation(conv.id, e)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
                       </div>
                     </button>
                   ))
