@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X } from "lucide-react";
+import { Brain, Loader2, Send, History, Plus, Trash2, ImagePlus, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { currentSnapshot, historicalRevenue, historicalChurn, monthlyMembers, annualMembers } from "@/lib/data";
 import { toast } from "sonner";
+import { extractAndSaveInsights } from "@/lib/insightExtractor";
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-metrics`;
 
