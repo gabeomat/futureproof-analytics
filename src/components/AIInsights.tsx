@@ -424,16 +424,29 @@ export function AIInsights() {
                 History
               </Button>
               {view === "chat" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={startNewAnalysis}
-                  disabled={loading}
-                  className="gap-1.5 ml-auto"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Analysis
-                </Button>
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={summarizeConversation}
+                    disabled={loading || messages.length === 0}
+                    className="gap-1.5"
+                    title="Summarize & save to strategy notes"
+                  >
+                    <BookmarkPlus className="w-3.5 h-3.5" />
+                    Summarize
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startNewAnalysis}
+                    disabled={loading}
+                    className="gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Analysis
+                  </Button>
+                </div>
               )}
             </div>
           </div>
