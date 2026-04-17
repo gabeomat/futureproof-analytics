@@ -250,6 +250,45 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          category: string
+          created_at: string
+          date: string
+          id: string
+          is_completed: boolean
+          is_default: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          date?: string
+          id?: string
+          is_completed?: boolean
+          is_default?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          date?: string
+          id?: string
+          is_completed?: boolean
+          is_default?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

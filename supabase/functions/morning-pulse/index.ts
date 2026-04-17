@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
       churnEvents,
       strategyNotes,
       aiConversations,
+      tasksRes,
     ] = await Promise.all([
       supabase.from("ceo_notes").select("*").order("date", { ascending: false }),
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(3),
@@ -62,10 +63,16 @@ Deno.serve(async (req) => {
       supabase.from("churn_events").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr),
       supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(1),
       supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(1),
+      supabase
+        .from("tasks")
+        .select("label, category, date, is_completed, is_default, sort_order, weight")
+        .order("date", { ascending: false })
+        .order("sort_order", { ascending: true })
+        .limit(30),
     ]);
 
     // Check for errors
-    const queries = { ceoNotes, dailyMetrics, dailyAcquisitions, monthlyRevenue, churnEvents, strategyNotes, aiConversations };
+    const queries = { ceoNotes, dailyMetrics, dailyAcquisitions, monthlyRevenue, churnEvents, strategyNotes, aiConversations, tasksRes };
     for (const [name, result] of Object.entries(queries)) {
       if (result.error) {
         return new Response(JSON.stringify({ error: `Failed to fetch ${name}: ${result.error.message}` }), {
@@ -84,6 +91,7 @@ Deno.serve(async (req) => {
       churn_events: churnEvents.data,
       strategy_notes: strategyNotes.data,
       ai_conversations: aiConversations.data,
+      tasks: tasksRes.data,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
