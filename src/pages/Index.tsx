@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit, LogOut } from "lucide-react";
+import { DollarSign, Users, TrendingDown, Target, Zap, BarChart3, ClipboardEdit, LogOut, CheckSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/MetricCard";
 import { MRRChart, RevenueBreakdownChart } from "@/components/RevenueChart";
@@ -9,11 +9,12 @@ import { MemberComposition } from "@/components/MemberComposition";
 import { DualMRRView } from "@/components/DualMRRView";
 import { ProjectionPlayground } from "@/components/ProjectionPlayground";
 import { DataEntry } from "@/components/DataEntry";
+import { TasksTab } from "@/components/TasksTab";
 import { AIInsights } from "@/components/AIInsights";
 import { formatCurrency, formatPercent } from "@/lib/data";
 import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 
-type Tab = "overview" | "projections" | "data-entry";
+type Tab = "overview" | "projections" | "data-entry" | "tasks";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -62,6 +63,15 @@ const Index = () => {
               >
                 <ClipboardEdit className="w-3.5 h-3.5 inline mr-1.5" />
                 Data Entry
+              </button>
+              <button
+                onClick={() => setActiveTab("tasks")}
+                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "tasks" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5 inline mr-1.5" />
+                Tasks
               </button>
             </div>
             <button
@@ -146,13 +156,21 @@ const Index = () => {
             </div>
             <ProjectionPlayground />
           </>
-        ) : (
+        ) : activeTab === "data-entry" ? (
           <>
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">Monthly Data Entry</h2>
               <p className="text-sm text-muted-foreground mt-1">Input your Skool MRR breakdown each month — New, Upgrades, Existing, Downgrades, Churn</p>
             </div>
             <DataEntry />
+          </>
+        ) : (
+          <>
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Daily Tasks</h2>
+              <p className="text-sm text-muted-foreground mt-1">Track strategic output with weighted completion — checkboxes are nice, but weight is what moves the needle</p>
+            </div>
+            <TasksTab />
           </>
         )}
       </main>
