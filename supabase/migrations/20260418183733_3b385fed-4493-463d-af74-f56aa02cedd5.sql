@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_acquisitions ADD COLUMN IF NOT EXISTS organic_source text NOT NULL DEFAULT '';

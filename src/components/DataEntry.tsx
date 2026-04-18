@@ -41,6 +41,7 @@ interface AcquisitionEntry {
   organic_27: number;
   organic_47: number;
   organic_333: number;
+  organic_source: string;
 }
 
 interface CSVUpload {
@@ -66,7 +67,7 @@ const DAILY_FIELDS: { key: keyof Omit<DailyEntry, "date" | "id">; label: string;
 
 const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_page_traffic: 0, discovery_rank: 0, profile_activity: 0, group_activity: 0 };
 const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
-const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
+const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0, organic_source: "" };
 
 interface ChurnEntry {
   id?: string;
@@ -281,8 +282,8 @@ export function DataEntry() {
   };
 
   const updateAcq = (field: keyof AcquisitionEntry, value: string) => {
-    if (field === "date") {
-      setAcqDraft((d) => ({ ...d, date: value }));
+    if (field === "date" || field === "organic_source") {
+      setAcqDraft((d) => ({ ...d, [field]: value }));
     } else if (field !== "id") {
       const num = value === "" ? 0 : Number(value);
       if (value !== "" && isNaN(num)) return;
@@ -363,6 +364,7 @@ export function DataEntry() {
           organic_27: 0,
           organic_47: 0,
           organic_333: 0,
+          organic_source: "",
         }));
 
         if (records.length === 0) {
@@ -992,6 +994,32 @@ export function DataEntry() {
                     </div>
                   </div>
                   <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Organic Conversions</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <Input type="number" min="0" value={acqDraft.organic_27 || ""} onChange={(e) => updateAcq("organic_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <Input type="number" min="0" value={acqDraft.organic_47 || ""} onChange={(e) => updateAcq("organic_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <Input type="number" min="0" value={acqDraft.organic_333 || ""} onChange={(e) => updateAcq("organic_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Organic Source / Notes</label>
+                      <Textarea
+                        value={acqDraft.organic_source}
+                        onChange={(e) => updateAcq("organic_source", e.target.value)}
+                        placeholder="e.g. YouTube video XYZ, referral from John, podcast appearance, word of mouth..."
+                        className="text-xs bg-background min-h-[60px] resize-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Revenue</p>
                     <div>
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Total Revenue ($)</label>
@@ -1029,6 +1057,8 @@ export function DataEntry() {
                         <TableHead className="text-[10px] font-mono text-right">Ad $27</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $47</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad $333</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Organic</TableHead>
+                        <TableHead className="text-[10px] font-mono">Source</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">CPA</TableHead>
                         <TableHead className="w-8"></TableHead>
                       </TableRow>
@@ -1036,6 +1066,7 @@ export function DataEntry() {
                     <TableBody>
                       {acqEntries.map((entry, i) => {
                         const totalAdConv = entry.ad_conv_27 + entry.ad_conv_47 + entry.ad_conv_333;
+                        const totalOrganic = (entry.organic_27 || 0) + (entry.organic_47 || 0) + (entry.organic_333 || 0);
                         const cpa = totalAdConv > 0 ? entry.ad_spend / totalAdConv : 0;
                         return (
                           <TableRow key={entry.id || i} className="group">
@@ -1045,6 +1076,8 @@ export function DataEntry() {
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_27}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_47}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-foreground">{entry.ad_conv_333}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground">{totalOrganic > 0 ? totalOrganic : "—"}</TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground max-w-[180px] truncate" title={entry.organic_source || ""}>{entry.organic_source || "—"}</TableCell>
                             <TableCell className="text-xs text-right font-mono text-primary font-semibold">{totalAdConv > 0 ? formatCurrency(cpa) : "—"}</TableCell>
                             <TableCell>
                               <button onClick={() => removeAcq(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
