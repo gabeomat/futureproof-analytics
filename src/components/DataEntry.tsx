@@ -41,6 +41,7 @@ interface AcquisitionEntry {
   organic_27: number;
   organic_47: number;
   organic_333: number;
+  organic_source: string;
 }
 
 interface CSVUpload {
@@ -66,7 +67,7 @@ const DAILY_FIELDS: { key: keyof Omit<DailyEntry, "date" | "id">; label: string;
 
 const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_page_traffic: 0, discovery_rank: 0, profile_activity: 0, group_activity: 0 };
 const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
-const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0 };
+const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0, organic_source: "" };
 
 interface ChurnEntry {
   id?: string;
@@ -281,8 +282,8 @@ export function DataEntry() {
   };
 
   const updateAcq = (field: keyof AcquisitionEntry, value: string) => {
-    if (field === "date") {
-      setAcqDraft((d) => ({ ...d, date: value }));
+    if (field === "date" || field === "organic_source") {
+      setAcqDraft((d) => ({ ...d, [field]: value }));
     } else if (field !== "id") {
       const num = value === "" ? 0 : Number(value);
       if (value !== "" && isNaN(num)) return;
@@ -363,6 +364,7 @@ export function DataEntry() {
           organic_27: 0,
           organic_47: 0,
           organic_333: 0,
+          organic_source: "",
         }));
 
         if (records.length === 0) {
