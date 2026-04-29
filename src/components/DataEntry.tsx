@@ -670,7 +670,7 @@ export function DataEntry() {
         <TabsList className="bg-secondary">
           <TabsTrigger value="daily" className="text-xs gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
-            Daily Metrics
+            Skool Metrics
           </TabsTrigger>
           <TabsTrigger value="monthly" className="text-xs gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
