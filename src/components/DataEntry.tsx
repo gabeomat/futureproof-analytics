@@ -670,7 +670,7 @@ export function DataEntry() {
         <TabsList className="bg-secondary">
           <TabsTrigger value="daily" className="text-xs gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
-            Daily Metrics
+            Skool Metrics
           </TabsTrigger>
           <TabsTrigger value="monthly" className="text-xs gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -699,7 +699,7 @@ export function DataEntry() {
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-foreground font-display">Daily Metrics</CardTitle>
+                <CardTitle className="text-sm font-semibold text-foreground font-display">Skool Metrics</CardTitle>
                 <div className="flex gap-2">
                   {dailyEntries.length > 0 && (
                     <Button variant="outline" size="sm" onClick={exportDaily} className="text-xs">
