@@ -197,6 +197,71 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_daily: {
+        Row: {
+          ad_spend: number
+          created_at: string
+          date: string
+          funnel: string
+          futureproof_revenue: number
+          futureproof_t27: number
+          futureproof_t333: number
+          futureproof_t47: number
+          id: string
+          intensive_revenue: number
+          notes: string
+          registrations_organic: number
+          registrations_paid: number
+          updated_at: string
+          workshop_id: string | null
+          workshop_revenue: number
+        }
+        Insert: {
+          ad_spend?: number
+          created_at?: string
+          date: string
+          funnel: string
+          futureproof_revenue?: number
+          futureproof_t27?: number
+          futureproof_t333?: number
+          futureproof_t47?: number
+          id?: string
+          intensive_revenue?: number
+          notes?: string
+          registrations_organic?: number
+          registrations_paid?: number
+          updated_at?: string
+          workshop_id?: string | null
+          workshop_revenue?: number
+        }
+        Update: {
+          ad_spend?: number
+          created_at?: string
+          date?: string
+          funnel?: string
+          futureproof_revenue?: number
+          futureproof_t27?: number
+          futureproof_t333?: number
+          futureproof_t47?: number
+          id?: string
+          intensive_revenue?: number
+          notes?: string
+          registrations_organic?: number
+          registrations_paid?: number
+          updated_at?: string
+          workshop_id?: string | null
+          workshop_revenue?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_daily_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_revenue: {
         Row: {
           created_at: string
@@ -289,6 +354,63 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           weight?: number
+        }
+        Relationships: []
+      }
+      workshops: {
+        Row: {
+          attended: number | null
+          created_at: string
+          id: string
+          intensive_applications: number
+          intensive_closes: number
+          intensive_declined: number
+          intensive_price: number
+          intensive_waitlist_mode: boolean
+          meta_attributed_registrations: number
+          notes: string
+          registration_window_end: string
+          registration_window_start: string
+          title: string
+          total_registrations: number
+          updated_at: string
+          workshop_date: string
+        }
+        Insert: {
+          attended?: number | null
+          created_at?: string
+          id?: string
+          intensive_applications?: number
+          intensive_closes?: number
+          intensive_declined?: number
+          intensive_price: number
+          intensive_waitlist_mode?: boolean
+          meta_attributed_registrations?: number
+          notes?: string
+          registration_window_end: string
+          registration_window_start: string
+          title?: string
+          total_registrations?: number
+          updated_at?: string
+          workshop_date: string
+        }
+        Update: {
+          attended?: number | null
+          created_at?: string
+          id?: string
+          intensive_applications?: number
+          intensive_closes?: number
+          intensive_declined?: number
+          intensive_price?: number
+          intensive_waitlist_mode?: boolean
+          meta_attributed_registrations?: number
+          notes?: string
+          registration_window_end?: string
+          registration_window_start?: string
+          title?: string
+          total_registrations?: number
+          updated_at?: string
+          workshop_date?: string
         }
         Relationships: []
       }
