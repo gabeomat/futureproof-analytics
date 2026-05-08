@@ -88,8 +88,14 @@ export function AIInsights() {
       toast.error("Failed to upload image");
       return;
     }
-    const { data: urlData } = supabase.storage.from("chat-uploads").getPublicUrl(path);
-    setPendingImages((prev) => [...prev, { url: urlData.publicUrl, name: file.name }]);
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("chat-uploads")
+      .createSignedUrl(path, 60 * 60);
+    if (signErr || !signed) {
+      toast.error("Failed to sign image URL");
+      return;
+    }
+    setPendingImages((prev) => [...prev, { url: signed.signedUrl, name: file.name }]);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
