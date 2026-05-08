@@ -280,6 +280,25 @@ export function AIInsights() {
     }
   };
 
+  const refreshImageUrls = async (msgs: Msg[]): Promise<Msg[]> => {
+    return Promise.all(
+      msgs.map(async (m) => {
+        if (!m.imageUrls || m.imageUrls.length === 0) return m;
+        const fresh = await Promise.all(
+          m.imageUrls.map(async (url) => {
+            const match = url.match(/\/chat-uploads\/([^?]+)/);
+            if (!match) return url;
+            const { data } = await supabase.storage
+              .from("chat-uploads")
+              .createSignedUrl(decodeURIComponent(match[1]), 60 * 60);
+            return data?.signedUrl ?? url;
+          }),
+        );
+        return { ...m, imageUrls: fresh };
+      }),
+    );
+  };
+
   const sendFollowUp = async () => {
     const text = input.trim();
     if (!text && pendingImages.length === 0) return;
