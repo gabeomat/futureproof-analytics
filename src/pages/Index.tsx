@@ -11,14 +11,18 @@ import { ProjectionPlayground } from "@/components/ProjectionPlayground";
 import { DataEntry } from "@/components/DataEntry";
 import { TasksTab } from "@/components/TasksTab";
 import { AIInsights } from "@/components/AIInsights";
+import { WorkshopFunnelOverview } from "@/components/WorkshopFunnelOverview";
+import { AllRevenueOverview } from "@/components/AllRevenueOverview";
 import { formatCurrency, formatPercent } from "@/lib/data";
 import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 
 type Tab = "overview" | "projections" | "data-entry" | "tasks";
+type FunnelView = "workshop" | "direct" | "all";
 
 const Index = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [funnelView, setFunnelView] = useState<FunnelView>("workshop");
   const currentSnapshot = useLiveMetrics();
 
   return (
