@@ -92,65 +92,51 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         {activeTab === "overview" ? (
           <>
-            {/* Key Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              <MetricCard
-                title="Pure Monthly MRR"
-                value={formatCurrency(currentSnapshot.pureMonthlyMRR)}
-                trend="up"
-                trendValue="+$378 this month"
-                icon={<DollarSign className="w-4 h-4" />}
-                variant="primary"
-              />
-              <MetricCard
-                title="Skool MRR"
-                value={formatCurrency(currentSnapshot.skoolMRR)}
-                subtitle="Includes annualized annual"
-                icon={<DollarSign className="w-4 h-4" />}
-              />
-              <MetricCard
-                title="Paying Members"
-                value={`${currentSnapshot.payingMembers}`}
-                subtitle={`${currentSnapshot.monthlyPayingMembers} monthly · ${currentSnapshot.annualPayingMembers} annual`}
-                icon={<Users className="w-4 h-4" />}
-              />
-              <MetricCard
-                title="Revenue Churn"
-                value={formatPercent(currentSnapshot.avgChurnRate)}
-                trend="down"
-                trendValue={`Target: ${formatPercent(currentSnapshot.targetChurnRate)}`}
-                icon={<TrendingDown className="w-4 h-4" />}
-                variant="warning"
-              />
-              <MetricCard
-                title="Calculated LTV"
-                value={formatCurrency(currentSnapshot.calculatedLTV)}
-                subtitle={`Skool: ${formatCurrency(currentSnapshot.skoolLTV)}`}
-                icon={<Target className="w-4 h-4" />}
-              />
-              <MetricCard
-                title="Legacy Members"
-                value={`${currentSnapshot.legacyMembers}`}
-                subtitle={`${((currentSnapshot.legacyMembers / currentSnapshot.payingMembers) * 100).toFixed(0)}% of paying base`}
-                trend="down"
-                trendValue="Shrinking (good)"
-              />
+            {/* Funnel toggle */}
+            <div className="flex items-center gap-1 bg-secondary rounded-lg p-1 w-fit">
+              {([
+                { v: "workshop", label: "Workshop Funnel" },
+                { v: "direct", label: "Direct-to-Skool (Legacy)" },
+                { v: "all", label: "All Revenue" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.v}
+                  onClick={() => setFunnelView(opt.v)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    funnelView === opt.v ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
 
-            {/* Charts row 1 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <MRRChart />
-              <RevenueBreakdownChart />
-            </div>
-
-            {/* Charts row 2 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ChurnChart />
-              <MemberComposition />
-            </div>
-
-            {/* Dual MRR View */}
-            <DualMRRView />
+            {funnelView === "workshop" ? (
+              <WorkshopFunnelOverview />
+            ) : funnelView === "all" ? (
+              <AllRevenueOverview />
+            ) : (
+              <>
+                {/* Direct-to-Skool legacy: original Overview */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  <MetricCard title="Pure Monthly MRR" value={formatCurrency(currentSnapshot.pureMonthlyMRR)} trend="up" trendValue="+$378 this month" icon={<DollarSign className="w-4 h-4" />} variant="primary" />
+                  <MetricCard title="Skool MRR" value={formatCurrency(currentSnapshot.skoolMRR)} subtitle="Includes annualized annual" icon={<DollarSign className="w-4 h-4" />} />
+                  <MetricCard title="Paying Members" value={`${currentSnapshot.payingMembers}`} subtitle={`${currentSnapshot.monthlyPayingMembers} monthly · ${currentSnapshot.annualPayingMembers} annual`} icon={<Users className="w-4 h-4" />} />
+                  <MetricCard title="Revenue Churn" value={formatPercent(currentSnapshot.avgChurnRate)} trend="down" trendValue={`Target: ${formatPercent(currentSnapshot.targetChurnRate)}`} icon={<TrendingDown className="w-4 h-4" />} variant="warning" />
+                  <MetricCard title="Calculated LTV" value={formatCurrency(currentSnapshot.calculatedLTV)} subtitle={`Skool: ${formatCurrency(currentSnapshot.skoolLTV)}`} icon={<Target className="w-4 h-4" />} />
+                  <MetricCard title="Legacy Members" value={`${currentSnapshot.legacyMembers}`} subtitle={`${((currentSnapshot.legacyMembers / currentSnapshot.payingMembers) * 100).toFixed(0)}% of paying base`} trend="down" trendValue="Shrinking (good)" />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <MRRChart />
+                  <RevenueBreakdownChart />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ChurnChart />
+                  <MemberComposition />
+                </div>
+                <DualMRRView />
+              </>
+            )}
           </>
         ) : activeTab === "projections" ? (
           <>
