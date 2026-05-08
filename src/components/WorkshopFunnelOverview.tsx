@@ -126,7 +126,8 @@ export function WorkshopFunnelOverview() {
             { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
           );
           const totalRegs = totals.regs_paid + totals.regs_org;
-          const cpa = totalRegs > 0 ? totals.ad_spend / totalRegs : 0;
+          const cpa = totals.regs_paid > 0 ? totals.ad_spend / totals.regs_paid : null;
+          const blended = totalRegs > 0 ? totals.ad_spend / totalRegs : null;
           const showRate = w.attended != null && w.total_registrations > 0
             ? (w.attended / w.total_registrations) * 100 : null;
           const totalRev = totals.workshop_rev + totals.intensive_rev + totals.fp_rev;
