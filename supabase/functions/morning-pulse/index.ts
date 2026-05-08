@@ -51,6 +51,10 @@ Deno.serve(async (req) => {
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
     const fourteenDaysAgoStr = fourteenDaysAgo.toISOString().split("T")[0];
 
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoStr = threeDaysAgo.toISOString().split("T")[0];
+
     const [
       ceoNotes,
       dailyMetrics,
