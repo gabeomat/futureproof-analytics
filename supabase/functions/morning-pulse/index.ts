@@ -45,6 +45,11 @@ Deno.serve(async (req) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const fourteenDaysAgoStr = fourteenDaysAgo.toISOString().split("T")[0];
 
     const [
       ceoNotes,
@@ -55,6 +60,8 @@ Deno.serve(async (req) => {
       strategyNotes,
       aiConversations,
       tasksRes,
+      workshopsRes,
+      funnelDailyRes,
     ] = await Promise.all([
       supabase.from("ceo_notes").select("*").order("date", { ascending: false }),
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(3),
@@ -69,10 +76,12 @@ Deno.serve(async (req) => {
         .order("date", { ascending: false })
         .order("sort_order", { ascending: true })
         .limit(30),
+      supabase.from("workshops").select("*").order("workshop_date", { ascending: false }),
+      supabase.from("funnel_daily").select("*").order("date", { ascending: false }),
     ]);
 
     // Check for errors
-    const queries = { ceoNotes, dailyMetrics, dailyAcquisitions, monthlyRevenue, churnEvents, strategyNotes, aiConversations, tasksRes };
+    const queries = { ceoNotes, dailyMetrics, dailyAcquisitions, monthlyRevenue, churnEvents, strategyNotes, aiConversations, tasksRes, workshopsRes, funnelDailyRes };
     for (const [name, result] of Object.entries(queries)) {
       if (result.error) {
         return new Response(JSON.stringify({ error: `Failed to fetch ${name}: ${result.error.message}` }), {
@@ -82,16 +91,70 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Build workshop activity section
+    const workshops = workshopsRes.data ?? [];
+    const funnelDaily = funnelDailyRes.data ?? [];
+
+    // Most recent active workshop = upcoming, else most recently closed
+    const upcoming = workshops.find((w: any) => w.workshop_date >= todayStr);
+    const activeWorkshop = upcoming ?? workshops[0] ?? null;
+
+    const activeWorkshopRecentDaily = activeWorkshop
+      ? funnelDaily.filter((r: any) => r.workshop_id === activeWorkshop.id && r.date >= sevenDaysAgoStr)
+      : [];
+
+    const perWorkshopTotals = workshops.map((w: any) => {
+      const rows = funnelDaily.filter((r: any) => r.workshop_id === w.id);
+      const totals = rows.reduce(
+        (a: any, r: any) => ({
+          ad_spend: a.ad_spend + Number(r.ad_spend),
+          regs_paid: a.regs_paid + r.registrations_paid,
+          regs_org: a.regs_org + r.registrations_organic,
+          workshop_rev: a.workshop_rev + Number(r.workshop_revenue),
+          intensive_rev: a.intensive_rev + Number(r.intensive_revenue),
+          fp_rev: a.fp_rev + Number(r.futureproof_revenue),
+          fp_t27: a.fp_t27 + r.futureproof_t27,
+          fp_t47: a.fp_t47 + r.futureproof_t47,
+          fp_t333: a.fp_t333 + r.futureproof_t333,
+        }),
+        { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
+      );
+      const isClosed = w.workshop_date < todayStr;
+      const isStaleClosed = isClosed && w.workshop_date < fourteenDaysAgoStr;
+      return {
+        id: w.id,
+        workshop_date: w.workshop_date,
+        title: w.title,
+        intensive_waitlist_mode: w.intensive_waitlist_mode,
+        attended: w.attended,
+        intensive_applications: w.intensive_applications,
+        intensive_declined: w.intensive_declined,
+        intensive_closes: w.intensive_closes,
+        totals,
+        empty_funnel_daily: rows.length === 0,
+        // Don't flag closed workshops more than 14 days old as "flying blind"
+        flag_missing_daily: rows.length === 0 && !isStaleClosed,
+      };
+    });
+
     return new Response(JSON.stringify({
       pulled_at: new Date().toISOString(),
       ceo_notes: ceoNotes.data,
       daily_metrics: dailyMetrics.data,
-      daily_acquisitions: dailyAcquisitions.data,
       monthly_revenue: monthlyRevenue.data,
       churn_events: churnEvents.data,
       strategy_notes: strategyNotes.data,
       ai_conversations: aiConversations.data,
       tasks: tasksRes.data,
+      // Section 2: ad activity — workshop-funnel-first
+      ad_activity: {
+        active_workshop: activeWorkshop,
+        active_workshop_recent_daily: activeWorkshopRecentDaily,
+        per_workshop_totals: perWorkshopTotals,
+        // Direct-to-Skool legacy ad activity (kept in case the funnel restarts)
+        direct_skool_legacy_last_7d: dailyAcquisitions.data,
+        direct_skool_funnel_last_7d: funnelDaily.filter((r: any) => r.funnel === "direct_skool" && r.date >= sevenDaysAgoStr),
+      },
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
