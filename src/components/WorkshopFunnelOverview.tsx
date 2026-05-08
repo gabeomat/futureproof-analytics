@@ -154,7 +154,7 @@ export function WorkshopFunnelOverview() {
                   <div className="text-xs space-y-1 font-mono">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Ad spend</span>
-                      <span className="text-foreground">{formatCurrency(totals.ad_spend)} · CPA {totalRegs > 0 ? formatCurrency(cpa) : "—"}</span>
+                      <span className="text-foreground">{formatCurrency(totals.ad_spend)} · CPA {cpa != null ? formatCurrency(cpa) : "—"} · Blended {blended != null ? formatCurrency(blended) : "—"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">→ Registrations</span>
