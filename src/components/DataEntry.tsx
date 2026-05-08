@@ -4,11 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus, NotebookPen } from "lucide-react";
+import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus, NotebookPen, Sparkles, BarChart3 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { WorkshopForm } from "./data-entry/WorkshopForm";
+import { FunnelDailyForm } from "./data-entry/FunnelDailyForm";
 
 // --- Types ---
 
@@ -666,8 +668,16 @@ export function DataEntry() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="daily" className="w-full">
-        <TabsList className="bg-secondary">
+      <Tabs defaultValue="workshop" className="w-full">
+        <TabsList className="bg-secondary flex-wrap h-auto">
+          <TabsTrigger value="workshop" className="text-xs gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            Workshop
+          </TabsTrigger>
+          <TabsTrigger value="funnel-daily" className="text-xs gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5" />
+            Funnel Daily
+          </TabsTrigger>
           <TabsTrigger value="daily" className="text-xs gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
             Skool Metrics
@@ -675,10 +685,6 @@ export function DataEntry() {
           <TabsTrigger value="monthly" className="text-xs gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
             Monthly Revenue
-          </TabsTrigger>
-          <TabsTrigger value="acquisition" className="text-xs gap-1.5">
-            <Megaphone className="w-3.5 h-3.5" />
-            Acquisition
           </TabsTrigger>
           <TabsTrigger value="ceo" className="text-xs gap-1.5">
             <NotebookPen className="w-3.5 h-3.5" />
@@ -692,7 +698,19 @@ export function DataEntry() {
             <FileUp className="w-3.5 h-3.5" />
             CSV Upload
           </TabsTrigger>
+          <TabsTrigger value="acquisition" className="text-xs gap-1.5">
+            <Megaphone className="w-3.5 h-3.5" />
+            Direct-to-Skool (Legacy)
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="workshop" className="space-y-4 mt-4">
+          <WorkshopForm />
+        </TabsContent>
+
+        <TabsContent value="funnel-daily" className="space-y-4 mt-4">
+          <FunnelDailyForm />
+        </TabsContent>
 
         {/* ========== DAILY TAB ========== */}
         <TabsContent value="daily" className="space-y-4 mt-4">
