@@ -99,17 +99,32 @@ Deno.serve(async (req) => {
     const workshops = workshopsRes.data ?? [];
     const funnelDaily = funnelDailyRes.data ?? [];
 
-    // Most recent active workshop = upcoming, else most recently closed
-    const upcoming = workshops.find((w: any) => w.workshop_date >= todayStr);
+    // Active workshop: smallest workshop_date >= today (upcoming), else most recently closed
+    const upcoming = [...workshops]
+      .filter((w: any) => w.workshop_date >= todayStr)
+      .sort((a: any, b: any) => a.workshop_date.localeCompare(b.workshop_date))[0];
     const activeWorkshop = upcoming ?? workshops[0] ?? null;
 
+    let activeWorkshopStatus: "upcoming" | "live" | "closed" | null = null;
+    if (activeWorkshop) {
+      if (activeWorkshop.workshop_date === todayStr) activeWorkshopStatus = "live";
+      else if (activeWorkshop.workshop_date > todayStr) activeWorkshopStatus = "upcoming";
+      else activeWorkshopStatus = "closed";
+    }
+
+    // Last 7d rows tied to active workshop
     const activeWorkshopRecentDaily = activeWorkshop
       ? funnelDaily.filter((r: any) => r.workshop_id === activeWorkshop.id && r.date >= sevenDaysAgoStr)
       : [];
 
-    const perWorkshopTotals = workshops.map((w: any) => {
-      const rows = funnelDaily.filter((r: any) => r.workshop_id === w.id);
-      const totals = rows.reduce(
+    // Today's rows across BOTH funnels for completeness
+    const todayAllFunnels = funnelDaily.filter((r: any) => r.date === todayStr);
+
+    // Workshop-level totals so far + tier breakdown
+    let activeWorkshopTotals: any = null;
+    if (activeWorkshop) {
+      const rows = funnelDaily.filter((r: any) => r.workshop_id === activeWorkshop.id);
+      const t = rows.reduce(
         (a: any, r: any) => ({
           ad_spend: a.ad_spend + Number(r.ad_spend),
           regs_paid: a.regs_paid + r.registrations_paid,
@@ -123,23 +138,30 @@ Deno.serve(async (req) => {
         }),
         { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
       );
-      const isClosed = w.workshop_date < todayStr;
-      const isStaleClosed = isClosed && w.workshop_date < fourteenDaysAgoStr;
-      return {
-        id: w.id,
-        workshop_date: w.workshop_date,
-        title: w.title,
-        intensive_waitlist_mode: w.intensive_waitlist_mode,
-        attended: w.attended,
-        intensive_applications: w.intensive_applications,
-        intensive_declined: w.intensive_declined,
-        intensive_closes: w.intensive_closes,
-        totals,
-        empty_funnel_daily: rows.length === 0,
-        // Don't flag closed workshops more than 14 days old as "flying blind"
-        flag_missing_daily: rows.length === 0 && !isStaleClosed,
+      const totalRegs = t.regs_paid + t.regs_org;
+      activeWorkshopTotals = {
+        total_registrations: totalRegs,
+        total_ad_spend: t.ad_spend,
+        registrations_paid: t.regs_paid,
+        registrations_organic: t.regs_org,
+        cpa_paid: t.regs_paid > 0 ? t.ad_spend / t.regs_paid : null,
+        cpa_blended: totalRegs > 0 ? t.ad_spend / totalRegs : null,
+        workshop_revenue: t.workshop_rev,
+        intensive_revenue: t.intensive_rev,
+        futureproof_revenue: t.fp_rev,
+        futureproof_signups_by_tier: { t27: t.fp_t27, t47: t.fp_t47, t333: t.fp_t333 },
       };
-    });
+    }
+
+    const activeWorkshopRows = activeWorkshop
+      ? funnelDaily.filter((r: any) => r.workshop_id === activeWorkshop.id)
+      : [];
+    const isStaleClosed =
+      activeWorkshopStatus === "closed" && activeWorkshop && activeWorkshop.workshop_date < fourteenDaysAgoStr;
+    const flagFlyingBlind = !!activeWorkshop && activeWorkshopRows.length === 0 && !isStaleClosed;
+
+    // Direct-to-Skool legacy: only surface if rows in last 3 days
+    const directSkoolRecent = (dailyAcquisitions.data ?? []).filter((r: any) => r.date >= threeDaysAgoStr);
 
     return new Response(JSON.stringify({
       pulled_at: new Date().toISOString(),
