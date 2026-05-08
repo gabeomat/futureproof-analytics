@@ -668,8 +668,16 @@ export function DataEntry() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="daily" className="w-full">
-        <TabsList className="bg-secondary">
+      <Tabs defaultValue="workshop" className="w-full">
+        <TabsList className="bg-secondary flex-wrap h-auto">
+          <TabsTrigger value="workshop" className="text-xs gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            Workshop
+          </TabsTrigger>
+          <TabsTrigger value="funnel-daily" className="text-xs gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5" />
+            Funnel Daily
+          </TabsTrigger>
           <TabsTrigger value="daily" className="text-xs gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
             Skool Metrics
@@ -677,10 +685,6 @@ export function DataEntry() {
           <TabsTrigger value="monthly" className="text-xs gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
             Monthly Revenue
-          </TabsTrigger>
-          <TabsTrigger value="acquisition" className="text-xs gap-1.5">
-            <Megaphone className="w-3.5 h-3.5" />
-            Acquisition
           </TabsTrigger>
           <TabsTrigger value="ceo" className="text-xs gap-1.5">
             <NotebookPen className="w-3.5 h-3.5" />
@@ -694,7 +698,19 @@ export function DataEntry() {
             <FileUp className="w-3.5 h-3.5" />
             CSV Upload
           </TabsTrigger>
+          <TabsTrigger value="acquisition" className="text-xs gap-1.5">
+            <Megaphone className="w-3.5 h-3.5" />
+            Direct-to-Skool (Legacy)
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="workshop" className="space-y-4 mt-4">
+          <WorkshopForm />
+        </TabsContent>
+
+        <TabsContent value="funnel-daily" className="space-y-4 mt-4">
+          <FunnelDailyForm />
+        </TabsContent>
 
         {/* ========== DAILY TAB ========== */}
         <TabsContent value="daily" className="space-y-4 mt-4">
