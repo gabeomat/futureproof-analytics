@@ -315,9 +315,10 @@ export function AIInsights() {
 
     try {
       const payload = dataPayload || (await fetchDataPayload());
+      const messagesForApi = await refreshImageUrls(updatedMessages);
 
       await streamResponse(
-        { ...payload, messages: updatedMessages },
+        { ...payload, messages: messagesForApi },
         (delta) => {
           assistantContentRef.current += delta;
           const content = assistantContentRef.current;
