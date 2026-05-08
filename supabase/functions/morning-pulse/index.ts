@@ -174,11 +174,15 @@ Deno.serve(async (req) => {
       tasks: tasksRes.data,
       // Section 2: ad activity — workshop-funnel-first
       ad_activity: {
-        active_workshop: activeWorkshop,
+        active_workshop: activeWorkshop
+          ? { ...activeWorkshop, status: activeWorkshopStatus }
+          : null,
         active_workshop_recent_daily: activeWorkshopRecentDaily,
-        per_workshop_totals: perWorkshopTotals,
-        // Direct-to-Skool legacy ad activity (kept in case the funnel restarts)
-        direct_skool_legacy_last_7d: dailyAcquisitions.data,
+        active_workshop_totals: activeWorkshopTotals,
+        today_all_funnels: todayAllFunnels,
+        flag_flying_blind: flagFlyingBlind,
+        // Direct-to-Skool legacy: only present if there's recent (≤3d) activity
+        direct_skool_legacy_recent: directSkoolRecent.length > 0 ? directSkoolRecent : null,
         direct_skool_funnel_last_7d: funnelDaily.filter((r: any) => r.funnel === "direct_skool" && r.date >= sevenDaysAgoStr),
       },
     }), {
