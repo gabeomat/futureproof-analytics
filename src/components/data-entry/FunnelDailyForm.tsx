@@ -320,9 +320,14 @@ export function FunnelDailyForm() {
                     <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(r.futureproof_revenue))}</TableCell>
                     <TableCell className="text-xs text-right font-mono">{r.futureproof_t27}/{r.futureproof_t47}/{r.futureproof_t333}</TableCell>
                     <TableCell>
-                      <button onClick={() => handleDelete(r.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(r)} className="text-muted-foreground hover:text-primary" title="Edit">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(r.id)} className="text-muted-foreground hover:text-destructive" title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
