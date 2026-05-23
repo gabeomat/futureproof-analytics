@@ -122,10 +122,8 @@ export function FunnelDailyForm() {
     }
     setSaving(true);
 
-    // Manually upsert by (date, funnel, workshop_id) since unique-conflict targets
-    // need to handle NULL workshop_id correctly — find existing first.
-    let existingId: string | null = null;
-    {
+    let existingId: string | null = editingId;
+    if (!existingId) {
       let q = supabase.from("funnel_daily").select("id").eq("date", draft.date).eq("funnel", draft.funnel);
       q = draft.workshop_id ? q.eq("workshop_id", draft.workshop_id) : q.is("workshop_id", null);
       const { data: existing } = await q.maybeSingle();
@@ -144,11 +142,27 @@ export function FunnelDailyForm() {
     }
     toast({ title: existingId ? "Daily entry updated" : "Daily entry saved" });
     setDraft({ ...EMPTY });
+    setEditingId(null);
     setWsRevTouched(false);
     setFpRevTouched(false);
     setShowForm(false);
     qc.invalidateQueries({ queryKey: ["funnel-daily-list"] });
     qc.invalidateQueries({ queryKey: ["workshop-funnel"] });
+  };
+
+  const handleEdit = (r: FunnelDailyRow) => {
+    const { id, ...rest } = r;
+    setDraft({
+      ...rest,
+      ad_spend: Number(rest.ad_spend) || 0,
+      workshop_revenue: Number(rest.workshop_revenue) || 0,
+      intensive_revenue: Number(rest.intensive_revenue) || 0,
+      futureproof_revenue: Number(rest.futureproof_revenue) || 0,
+    });
+    setEditingId(id);
+    setWsRevTouched(true);
+    setFpRevTouched(true);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
