@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,6 +54,7 @@ export function FunnelDailyForm() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ ...EMPTY });
   const [saving, setSaving] = useState(false);
 
@@ -121,10 +122,8 @@ export function FunnelDailyForm() {
     }
     setSaving(true);
 
-    // Manually upsert by (date, funnel, workshop_id) since unique-conflict targets
-    // need to handle NULL workshop_id correctly — find existing first.
-    let existingId: string | null = null;
-    {
+    let existingId: string | null = editingId;
+    if (!existingId) {
       let q = supabase.from("funnel_daily").select("id").eq("date", draft.date).eq("funnel", draft.funnel);
       q = draft.workshop_id ? q.eq("workshop_id", draft.workshop_id) : q.is("workshop_id", null);
       const { data: existing } = await q.maybeSingle();
@@ -143,11 +142,27 @@ export function FunnelDailyForm() {
     }
     toast({ title: existingId ? "Daily entry updated" : "Daily entry saved" });
     setDraft({ ...EMPTY });
+    setEditingId(null);
     setWsRevTouched(false);
     setFpRevTouched(false);
     setShowForm(false);
     qc.invalidateQueries({ queryKey: ["funnel-daily-list"] });
     qc.invalidateQueries({ queryKey: ["workshop-funnel"] });
+  };
+
+  const handleEdit = (r: FunnelDailyRow) => {
+    const { id, ...rest } = r;
+    setDraft({
+      ...rest,
+      ad_spend: Number(rest.ad_spend) || 0,
+      workshop_revenue: Number(rest.workshop_revenue) || 0,
+      intensive_revenue: Number(rest.intensive_revenue) || 0,
+      futureproof_revenue: Number(rest.futureproof_revenue) || 0,
+    });
+    setEditingId(id);
+    setWsRevTouched(true);
+    setFpRevTouched(true);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -264,9 +279,9 @@ export function FunnelDailyForm() {
 
             <div className="flex gap-2">
               <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">
-                {saving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}Save Daily Entry
+                {saving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}{editingId ? "Update Entry" : "Save Daily Entry"}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setDraft({ ...EMPTY }); setWsRevTouched(false); setFpRevTouched(false); }} className="text-xs">Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setDraft({ ...EMPTY }); setEditingId(null); setWsRevTouched(false); setFpRevTouched(false); }} className="text-xs">Cancel</Button>
             </div>
           </div>
         )}
@@ -305,9 +320,14 @@ export function FunnelDailyForm() {
                     <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(r.futureproof_revenue))}</TableCell>
                     <TableCell className="text-xs text-right font-mono">{r.futureproof_t27}/{r.futureproof_t47}/{r.futureproof_t333}</TableCell>
                     <TableCell>
-                      <button onClick={() => handleDelete(r.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(r)} className="text-muted-foreground hover:text-primary" title="Edit">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(r.id)} className="text-muted-foreground hover:text-destructive" title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
