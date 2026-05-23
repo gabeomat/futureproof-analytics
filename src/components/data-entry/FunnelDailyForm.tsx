@@ -54,6 +54,7 @@ export function FunnelDailyForm() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ ...EMPTY });
   const [saving, setSaving] = useState(false);
 
