@@ -279,9 +279,9 @@ export function FunnelDailyForm() {
 
             <div className="flex gap-2">
               <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">
-                {saving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}Save Daily Entry
+                {saving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}{editingId ? "Update Entry" : "Save Daily Entry"}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setDraft({ ...EMPTY }); setWsRevTouched(false); setFpRevTouched(false); }} className="text-xs">Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setDraft({ ...EMPTY }); setEditingId(null); setWsRevTouched(false); setFpRevTouched(false); }} className="text-xs">Cancel</Button>
             </div>
           </div>
         )}
