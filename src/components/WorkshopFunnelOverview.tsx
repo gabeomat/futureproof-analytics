@@ -118,19 +118,21 @@ export function WorkshopFunnelOverview() {
               regs_org: acc.regs_org + r.registrations_organic,
               workshop_rev: acc.workshop_rev + Number(r.workshop_revenue),
               intensive_rev: acc.intensive_rev + Number(r.intensive_revenue),
-              fp_rev: acc.fp_rev + Number(r.futureproof_revenue),
               fp_t27: acc.fp_t27 + r.futureproof_t27,
               fp_t47: acc.fp_t47 + r.futureproof_t47,
               fp_t333: acc.fp_t333 + r.futureproof_t333,
             }),
-            { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
+            { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
           );
+          // Derive Futureproof revenue from tier counts (source of truth) so it
+          // always reflects the displayed 1×$27 / 2×$47 / N×$333 breakdown.
+          const fp_rev = totals.fp_t27 * 27 + totals.fp_t47 * 47 + totals.fp_t333 * 333;
           const totalRegs = totals.regs_paid + totals.regs_org;
           const cpa = totals.regs_paid > 0 ? totals.ad_spend / totals.regs_paid : null;
           const blended = totalRegs > 0 ? totals.ad_spend / totalRegs : null;
           const showRate = w.attended != null && w.total_registrations > 0
             ? (w.attended / w.total_registrations) * 100 : null;
-          const totalRev = totals.workshop_rev + totals.intensive_rev + totals.fp_rev;
+          const totalRev = totals.workshop_rev + totals.intensive_rev + fp_rev;
           const roas = totals.ad_spend > 0 ? totalRev / totals.ad_spend : 0;
           const status = workshopStatus(w.workshop_date);
 
