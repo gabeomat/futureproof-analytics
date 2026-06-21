@@ -189,7 +189,7 @@ export function WorkshopFunnelOverview() {
                   <div className="text-xs space-y-1 font-mono">
                     <div className="flex justify-between"><span className="text-muted-foreground">Workshop</span><span>{formatCurrency(totals.workshop_rev)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Intensive</span><span>{formatCurrency(totals.intensive_rev)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Futureproof (one-time view)</span><span>{formatCurrency(totals.fp_rev)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Futureproof (one-time view)</span><span>{formatCurrency(fp_rev)}</span></div>
                     <div className="flex justify-between font-semibold pt-1 border-t border-border mt-1">
                       <span className="text-foreground">Total</span>
                       <span className="text-primary">{formatCurrency(totalRev)}</span>
