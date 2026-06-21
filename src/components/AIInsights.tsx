@@ -81,8 +81,14 @@ export function AIInsights() {
   const assistantContentRef = useRef("");
 
   const uploadImage = async (file: File) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      toast.error("You must be signed in to upload");
+      return;
+    }
     const ext = file.name.split(".").pop() || "png";
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
     if (error) {
       toast.error("Failed to upload image");
