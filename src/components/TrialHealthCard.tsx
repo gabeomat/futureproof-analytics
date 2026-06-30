@@ -48,7 +48,7 @@ export function TrialHealthCard() {
       </CardHeader>
       <CardContent>
         {mature.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">No mature cohorts yet (need ≥ 7 days since trial start).</p>
+          <p className="text-sm text-muted-foreground text-center py-6">No mature cohorts yet (need ≥ 7 days since trial start).</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Stat label="Mature Trial Starts" value={String(totalStarts)} />
