@@ -357,6 +357,48 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_cohorts: {
+        Row: {
+          ad_spend_attributed: number
+          created_at: string
+          day30_still_paid: number | null
+          day7_paid: number | null
+          first_payment_revenue: number
+          funnel: string
+          id: string
+          notes: string
+          trial_start_date: string
+          trial_starts: number
+          updated_at: string
+        }
+        Insert: {
+          ad_spend_attributed?: number
+          created_at?: string
+          day30_still_paid?: number | null
+          day7_paid?: number | null
+          first_payment_revenue?: number
+          funnel: string
+          id?: string
+          notes?: string
+          trial_start_date: string
+          trial_starts?: number
+          updated_at?: string
+        }
+        Update: {
+          ad_spend_attributed?: number
+          created_at?: string
+          day30_still_paid?: number | null
+          day7_paid?: number | null
+          first_payment_revenue?: number
+          funnel?: string
+          id?: string
+          notes?: string
+          trial_start_date?: string
+          trial_starts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
