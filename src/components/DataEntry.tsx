@@ -83,9 +83,12 @@ interface ChurnEntry {
   joined_date: string;
   tier: string;
   ltv: number;
+  recurring_interval?: string;
+  churn_date_estimated?: boolean;
 }
 
-const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "", first_name: "", last_name: "", email: "", joined_date: "", tier: "", ltv: 0 };
+const EMPTY_CHURN: ChurnEntry = { date: todayStr(), price_point: 0, notes: "", first_name: "", last_name: "", email: "", joined_date: "", tier: "", ltv: 0, recurring_interval: "month", churn_date_estimated: false };
+
 
 interface CEONotesEntry {
   id?: string;
