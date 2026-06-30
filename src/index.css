@@ -1,71 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================================
+   MEMPHIS EARTH EDIT — design tokens
+   Palette:
+     --salmon #f47c70   --forest #1f3d3a   --terra #c75a34
+     --sage   #a8b8a5   --cream  #f8f5ef   --linen #e8d8c5
+     --ink    #2b2926
+   ===================================================================== */
+
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 92%;
+    /* raw Memphis palette (HSL) */
+    --salmon: 6 86% 70%;
+    --forest: 173 32% 18%;
+    --terra: 15 59% 49%;
+    --sage: 108 11% 68%;
+    --cream: 38 41% 96%;
+    --linen: 32 47% 84%;
+    --ink: 30 9% 16%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 20% 92%;
+    /* shadcn semantic tokens mapped to Memphis */
+    --background: var(--cream);
+    --foreground: var(--ink);
 
-    --popover: 220 18% 12%;
-    --popover-foreground: 210 20% 92%;
+    --card: var(--cream);
+    --card-foreground: var(--ink);
 
-    --primary: 172 66% 50%;
-    --primary-foreground: 220 20% 7%;
+    --popover: var(--cream);
+    --popover-foreground: var(--ink);
 
-    --secondary: 220 16% 16%;
-    --secondary-foreground: 210 20% 85%;
+    --primary: var(--forest);
+    --primary-foreground: var(--cream);
 
-    --muted: 220 14% 14%;
-    --muted-foreground: 215 12% 50%;
+    --secondary: var(--linen);
+    --secondary-foreground: var(--ink);
 
-    --accent: 262 60% 58%;
-    --accent-foreground: 210 20% 95%;
+    --muted: var(--linen);
+    --muted-foreground: 30 9% 36%;
 
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 210 40% 98%;
+    --accent: var(--salmon);
+    --accent-foreground: var(--ink);
 
-    --success: 152 60% 45%;
-    --success-foreground: 220 20% 7%;
+    --destructive: var(--terra);
+    --destructive-foreground: var(--cream);
 
-    --warning: 38 92% 55%;
-    --warning-foreground: 220 20% 7%;
+    --success: 173 32% 30%;
+    --success-foreground: var(--cream);
 
-    --chart-1: 172 66% 50%;
-    --chart-2: 262 60% 58%;
-    --chart-3: 38 92% 55%;
-    --chart-4: 0 72% 55%;
-    --chart-5: 200 70% 55%;
+    --warning: 15 59% 49%;
+    --warning-foreground: var(--cream);
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
-    --ring: 172 66% 50%;
+    --chart-1: var(--forest);
+    --chart-2: var(--salmon);
+    --chart-3: var(--terra);
+    --chart-4: var(--sage);
+    --chart-5: 38 60% 50%;
 
-    --radius: 0.75rem;
+    --border: var(--ink);
+    --input: var(--ink);
+    --ring: var(--forest);
 
-    --sidebar-background: 220 18% 10%;
-    --sidebar-foreground: 210 20% 85%;
-    --sidebar-primary: 172 66% 50%;
-    --sidebar-primary-foreground: 220 20% 7%;
-    --sidebar-accent: 220 16% 16%;
-    --sidebar-accent-foreground: 210 20% 85%;
-    --sidebar-border: 220 14% 18%;
-    --sidebar-ring: 172 66% 50%;
+    --radius: 0.25rem; /* sharp corners — 4px max */
 
-    --font-display: 'Space Grotesk', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --sidebar-background: var(--cream);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--forest);
+    --sidebar-primary-foreground: var(--cream);
+    --sidebar-accent: var(--linen);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--ink);
+    --sidebar-ring: var(--forest);
 
-    --gradient-primary: linear-gradient(135deg, hsl(172 66% 50%), hsl(200 70% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(262 60% 58%), hsl(290 60% 55%));
-    --gradient-surface: linear-gradient(180deg, hsl(220 18% 12%), hsl(220 18% 10%));
-    --shadow-glow: 0 0 30px -5px hsl(172 66% 50% / 0.15);
-    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.3);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+
+    /* Memphis shadows — hard, no blur, no opacity */
+    --shadow-memphis: 4px 4px 0 hsl(var(--ink));
+    --shadow-memphis-sm: 3px 3px 0 hsl(var(--ink));
+    --shadow-memphis-lg: 6px 6px 0 hsl(var(--ink));
+    --shadow-card: 4px 4px 0 hsl(var(--ink));
+    --shadow-glow: 4px 4px 0 hsl(var(--ink));
+  }
+
+  .dark {
+    /* Memphis Earth has no separate dark mode — keep palette consistent */
+    --background: var(--cream);
+    --foreground: var(--ink);
   }
 }
 
@@ -81,26 +106,74 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 }
 
 @layer utilities {
-  .font-display {
-    font-family: var(--font-display);
+  .font-display { font-family: var(--font-display); letter-spacing: 0.04em; }
+  .font-mono { font-family: var(--font-mono); }
+  .font-body { font-family: var(--font-body); }
+
+  .shadow-memphis { box-shadow: var(--shadow-memphis); }
+  .shadow-memphis-sm { box-shadow: var(--shadow-memphis-sm); }
+  .shadow-memphis-lg { box-shadow: var(--shadow-memphis-lg); }
+  .shadow-glow { box-shadow: var(--shadow-memphis); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+
+  .border-ink-3 { border-width: 3px; border-color: hsl(var(--ink)); border-style: solid; }
+
+  /* Memphis pattern fills */
+  .pattern-checker {
+    background-image:
+      linear-gradient(45deg, hsl(var(--salmon)) 25%, transparent 25%),
+      linear-gradient(-45deg, hsl(var(--salmon)) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, hsl(var(--salmon)) 75%),
+      linear-gradient(-45deg, transparent 75%, hsl(var(--salmon)) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-color: hsl(var(--cream));
   }
-  .font-mono {
-    font-family: var(--font-mono);
+  .pattern-dots {
+    background-image: radial-gradient(hsl(var(--terra)) 2px, transparent 2px);
+    background-size: 14px 14px;
+    background-color: hsl(var(--linen));
   }
-  .gradient-primary {
-    background: var(--gradient-primary);
+  .pattern-hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      hsl(var(--sage)) 0,
+      hsl(var(--sage)) 2px,
+      hsl(var(--cream)) 2px,
+      hsl(var(--cream)) 8px
+    );
   }
-  .gradient-accent {
-    background: var(--gradient-accent);
+  .pattern-stripes {
+    background-image: repeating-linear-gradient(
+      90deg,
+      hsl(var(--forest)) 0,
+      hsl(var(--forest)) 6px,
+      hsl(var(--sage)) 6px,
+      hsl(var(--sage)) 12px
+    );
   }
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
+  .pattern-zigzag {
+    background:
+      linear-gradient(135deg, hsl(var(--terra)) 25%, transparent 25%) -8px 0,
+      linear-gradient(225deg, hsl(var(--terra)) 25%, transparent 25%) -8px 0,
+      linear-gradient(315deg, hsl(var(--terra)) 25%, transparent 25%),
+      linear-gradient(45deg, hsl(var(--terra)) 25%, transparent 25%);
+    background-size: 16px 16px;
+    background-color: hsl(var(--linen));
   }
-  .shadow-card {
-    box-shadow: var(--shadow-card);
+
+  /* hover lift used by buttons / interactive cards */
+  .memphis-lift {
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+  .memphis-lift:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-memphis-lg);
   }
 }

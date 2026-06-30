@@ -14,9 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Space Grotesk', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        display: ['Bebas Neue', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif'],
+        mono: ['Space Mono', 'monospace'],
+        sans: ['DM Sans', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -60,6 +61,14 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        // Direct Memphis palette access (e.g. bg-salmon, text-forest)
+        salmon: "hsl(var(--salmon))",
+        forest: "hsl(var(--forest))",
+        terra: "hsl(var(--terra))",
+        sage: "hsl(var(--sage))",
+        cream: "hsl(var(--cream))",
+        linen: "hsl(var(--linen))",
+        ink: "hsl(var(--ink))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -71,10 +80,18 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      borderWidth: {
+        "3": "3px",
+      },
+      boxShadow: {
+        memphis: "4px 4px 0 hsl(var(--ink))",
+        "memphis-sm": "3px 3px 0 hsl(var(--ink))",
+        "memphis-lg": "6px 6px 0 hsl(var(--ink))",
+      },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 1px)",
+        sm: "calc(var(--radius) - 2px)",
       },
       keyframes: {
         "accordion-down": {
