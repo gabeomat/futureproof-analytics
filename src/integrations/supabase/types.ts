@@ -73,6 +73,7 @@ export type Database = {
       }
       churn_events: {
         Row: {
+          churn_date_estimated: boolean
           created_at: string
           date: string
           email: string | null
@@ -83,9 +84,11 @@ export type Database = {
           ltv: number
           notes: string | null
           price_point: number
+          recurring_interval: string
           tier: string | null
         }
         Insert: {
+          churn_date_estimated?: boolean
           created_at?: string
           date?: string
           email?: string | null
@@ -96,9 +99,11 @@ export type Database = {
           ltv?: number
           notes?: string | null
           price_point: number
+          recurring_interval?: string
           tier?: string | null
         }
         Update: {
+          churn_date_estimated?: boolean
           created_at?: string
           date?: string
           email?: string | null
@@ -109,6 +114,7 @@ export type Database = {
           ltv?: number
           notes?: string | null
           price_point?: number
+          recurring_interval?: string
           tier?: string | null
         }
         Relationships: []
