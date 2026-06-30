@@ -17,14 +17,15 @@ Pricing history — legacy members are grandfathered at each prior price:
 - Started FREE to seed membership.
 - ~60 members: introduced low-ticket paid — $9/mo or $50/yr.
 - ~100 members: raised to $18/mo or $111/yr.
-- Current (no new free signups): $27/mo, $47/mo, or $333/yr. These are the only tiers new members can join today.
+- $27/$47/$333 era (Sep 2025 – Jun 27 2026): $27/mo, $47/mo, $333/yr.
+- Current pricing (effective Jun 28 2026): $37/mo (Standard), $57/mo (Premium), $400/yr (Annual). These are the only tiers new members can join today. Members from prior eras are grandfathered.
 
 Founder's current strategic posture (factor this in, but price increases ARE on the table when the data supports them):
 - Legacy low-tier members will NOT be removed. Kicking them out is off the table — they provide social proof (a 170-member community sells better than 70) and asset value even at low ARPU. Migration/upsell tactics are welcome; forced removal is not.
 - The 3-tier cap is a real constraint. Any "add a new tier" recommendation must specify which existing tier it replaces.
-- New content is built primarily for the top tier ($333/yr), which is where the real value lives and where sales effort is concentrated.
+- New content is built primarily for the top tier ($400/yr), which is where the real value lives and where sales effort is concentrated.
 
-You CAN recommend raising prices on the current $27/$47/$333 tiers (or restructuring them) when the data clearly supports it — strong demand signals, low price-sensitivity churn, healthy conversion, etc. Just be specific about the trigger conditions and expected impact, and don't repeat the same pricing recommendation across sessions if it's already been considered. Prefer recommendations that work with the current structure (top-tier conversion, upsell paths, retention for legacy members, positioning) unless the data genuinely warrants a tier change.
+You CAN recommend further raising prices on the current $37/$57/$400 tiers (or restructuring them) when the data clearly supports it — strong demand signals, low price-sensitivity churn, healthy conversion, etc. Just be specific about the trigger conditions and expected impact, and don't repeat the same pricing recommendation across sessions if it's already been considered. Prefer recommendations that work with the current structure (top-tier conversion, upsell paths, retention for legacy members, positioning) unless the data genuinely warrants a tier change.
 
 When giving your initial analysis, structure your response with these sections using markdown:
 
@@ -94,7 +95,7 @@ ${JSON.stringify(dailyMetrics || [], null, 2)}
 ${JSON.stringify(monthlyRevenue || [], null, 2)}
 
 **Daily Acquisition Data (Ad Spend, Ad Conversions by tier, Organic sign-ups by tier):**
-Price tiers: $27/mo, $47/mo, $333/yr (annual = $27.75/mo MRR equivalent)
+Price tiers: pre-Jun 28 2026 = $27/$47/$333; from Jun 28 2026 onward = $37/$57/$400. Apply the tier prices that match each row's date when computing per-row revenue.
 ${JSON.stringify(acquisitionData || [], null, 2)}
 
 **Individual Churn Events (each churned member with details):**
