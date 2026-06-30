@@ -98,8 +98,10 @@ Price tiers: $27/mo, $47/mo, $333/yr (annual = $27.75/mo MRR equivalent)
 ${JSON.stringify(acquisitionData || [], null, 2)}
 
 **Individual Churn Events (each churned member with details):**
-Fields: date (churn date), first_name, last_name, email, price_point (their monthly $), tier, joined_date, ltv (lifetime value paid), notes
+Fields: date (actual or estimated churn date), first_name, last_name, email, price_point (their monthly $), tier, joined_date, ltv (lifetime value paid, cumulative across stints for rejoiners), recurring_interval ('month' or 'year'), churn_date_estimated (true = date derived from joined_date + ltv/price), notes
+NOTE: Exclude rows with recurring_interval='year' from any monthly churn-rate calculation; their LTV still counts toward lifetime views. Always group churn by the date field (real churn timing), never by import time.
 ${JSON.stringify(churnEvents || [], null, 2)}
+
 
 **Current Skool Members (from latest member export):**
 ${JSON.stringify(skoolMembers || [], null, 2)}
