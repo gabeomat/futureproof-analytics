@@ -66,8 +66,8 @@ export function TrialHealthCard() {
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="rounded-md border border-border bg-background/40 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`text-lg font-bold font-mono mt-1 ${highlight ? "text-primary" : "text-foreground"}`}>{value}</p>
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-bold font-mono mt-1 ${highlight ? "text-primary" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }
