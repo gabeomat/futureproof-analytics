@@ -38,10 +38,10 @@ export function TrialHealthCard() {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-foreground font-display flex items-center gap-2">
-          <Beaker className="w-4 h-4 text-primary" />
+        <CardTitle className="text-lg font-semibold text-foreground font-display flex items-center gap-2">
+          <Beaker className="w-5 h-5 text-primary" />
           Trial Health
-          <span className="text-[10px] font-mono text-muted-foreground font-normal">
+          <span className="text-xs font-mono text-muted-foreground font-normal">
             ({mature.length} mature cohort{mature.length === 1 ? "" : "s"})
           </span>
         </CardTitle>
