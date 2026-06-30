@@ -14,6 +14,7 @@ import { AIInsights } from "@/components/AIInsights";
 import { WorkshopFunnelOverview } from "@/components/WorkshopFunnelOverview";
 import { TrialHealthCard } from "@/components/TrialHealthCard";
 import { AllRevenueOverview } from "@/components/AllRevenueOverview";
+import { MemphisScatter } from "@/components/decor/MemphisScatter";
 import { formatCurrency, formatPercent } from "@/lib/data";
 import { useLiveMetrics } from "@/hooks/useLiveMetrics";
 
@@ -27,61 +28,48 @@ const Index = () => {
   const currentSnapshot = useLiveMetrics();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-cream relative">
+      <MemphisScatter />
+
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="relative z-10 border-b-3 border-ink bg-cream sticky top-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="font-display text-xl font-bold text-foreground tracking-tight">
-                  Futureproof<span className="text-primary"> Analytics</span>
+                <h1 className="font-display text-3xl text-ink leading-none tracking-wide">
+                  FUTUREPROOF <span className="text-terra">ANALYTICS</span>
                 </h1>
-                <p className="text-xs text-muted-foreground mt-0.5">The Evolution Lab · MRR & Growth Intelligence</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-ink/70 mt-1">
+                  The Evolution Lab · MRR &amp; Growth Intelligence
+                </p>
               </div>
               <AIInsights />
             </div>
-            <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
-              <button
-                onClick={() => setActiveTab("overview")}
-                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-                  activeTab === "overview" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
-                }`}
-              >
-                <BarChart3 className="w-3.5 h-3.5 inline mr-1.5" />
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab("projections")}
-                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-                  activeTab === "projections" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5 inline mr-1.5" />
-                MRR Playground
-              </button>
-              <button
-                onClick={() => setActiveTab("data-entry")}
-                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-                  activeTab === "data-entry" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
-                }`}
-              >
-                <ClipboardEdit className="w-3.5 h-3.5 inline mr-1.5" />
-                Data Entry
-              </button>
-              <button
-                onClick={() => setActiveTab("tasks")}
-                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-                  activeTab === "tasks" ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
-                }`}
-              >
-                <CheckSquare className="w-3.5 h-3.5 inline mr-1.5" />
-                Tasks
-              </button>
+            <div className="flex items-center gap-1 bg-linen border-3 border-ink rounded-sm p-1 shadow-memphis-sm">
+              {([
+                { id: "overview", label: "Overview", Icon: BarChart3 },
+                { id: "projections", label: "MRR Playground", Icon: Zap },
+                { id: "data-entry", label: "Data Entry", Icon: ClipboardEdit },
+                { id: "tasks", label: "Tasks", Icon: CheckSquare },
+              ] as const).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id as Tab)}
+                  className={`px-3 py-1.5 rounded-sm font-mono text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    activeTab === id
+                      ? "bg-salmon text-ink border-3 border-ink"
+                      : "border-3 border-transparent text-ink hover:bg-cream"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
+                  {label}
+                </button>
+              ))}
             </div>
             <button
               onClick={async () => { await supabase.auth.signOut(); navigate("/auth"); }}
-              className="ml-3 p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+              className="p-2 rounded-sm border-3 border-ink bg-cream text-ink shadow-memphis-sm hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-memphis transition-all"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />
@@ -90,11 +78,11 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-6 space-y-6">
         {activeTab === "overview" ? (
           <>
             {/* Funnel toggle */}
-            <div className="flex items-center gap-1 bg-secondary rounded-lg p-1 w-fit">
+            <div className="flex items-center gap-1 bg-linen border-3 border-ink rounded-sm p-1 w-fit shadow-memphis-sm">
               {([
                 { v: "workshop", label: "Workshop Funnel" },
                 { v: "direct", label: "Direct-to-Skool (Legacy)" },
@@ -103,8 +91,10 @@ const Index = () => {
                 <button
                   key={opt.v}
                   onClick={() => setFunnelView(opt.v)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    funnelView === opt.v ? "bg-primary text-primary-foreground" : "text-secondary-foreground hover:text-foreground"
+                  className={`px-3 py-1.5 rounded-sm font-mono text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    funnelView === opt.v
+                      ? "bg-forest text-cream border-3 border-ink"
+                      : "border-3 border-transparent text-ink hover:bg-cream"
                   }`}
                 >
                   {opt.label}
