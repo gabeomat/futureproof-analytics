@@ -465,58 +465,127 @@ export function DataEntry() {
         }
         const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase());
 
-        const firstNameIdx = headers.findIndex((h) => h === "firstname");
-        const lastNameIdx = headers.findIndex((h) => h === "lastname");
+        const firstNameIdx = headers.findIndex((h) => h === "firstname" || h === "first_name");
+        const lastNameIdx = headers.findIndex((h) => h === "lastname" || h === "last_name");
         const emailIdx = headers.findIndex((h) => h === "email");
-        const joinedDateIdx = headers.findIndex((h) => h === "joineddate");
+        const joinedDateIdx = headers.findIndex((h) => h === "joineddate" || h === "joined_date");
         const priceIdx = headers.findIndex((h) => h === "price");
         const tierIdx = headers.findIndex((h) => h === "tier");
         const ltvIdx = headers.findIndex((h) => h === "ltv");
+        const churnDateIdx = headers.findIndex((h) => h === "churndate" || h === "churn_date");
+        const intervalIdx = headers.findIndex((h) => h === "recurring_interval" || h === "interval");
+
+        const parseDate = (s: string): string | null => {
+          if (!s) return null;
+          const t = s.trim();
+          if (!t) return null;
+          const d = new Date(t);
+          if (isNaN(d.getTime())) return null;
+          return d.toISOString().slice(0, 10);
+        };
+
+        const addMonths = (iso: string, months: number): string => {
+          const d = new Date(iso + "T00:00:00Z");
+          d.setUTCMonth(d.getUTCMonth() + months);
+          return d.toISOString().slice(0, 10);
+        };
 
         const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
-        const records = rows.filter((r) => r.length > 1).map((r) => {
+
+        let added = 0;
+        let updated = 0;
+        let skippedFree = 0;
+        let skippedNoEmail = 0;
+
+        for (const r of rows) {
+          if (r.length < 2) continue;
           const priceStr = priceIdx >= 0 ? r[priceIdx].replace(/[^0-9.]/g, "") : "0";
           const ltvStr = ltvIdx >= 0 ? r[ltvIdx].replace(/[^0-9.]/g, "") : "0";
-          const joinedRaw = joinedDateIdx >= 0 ? r[joinedDateIdx] : "";
-          return {
-            date: todayStr(),
+          const price = Number(priceStr) || 0;
+          const ltv = Number(ltvStr) || 0;
+
+          if (price <= 0 || ltv <= 0) { skippedFree++; continue; }
+
+          const email = (emailIdx >= 0 ? r[emailIdx] : "").trim();
+          if (!email) { skippedNoEmail++; continue; }
+
+          const joinedDate = joinedDateIdx >= 0 ? parseDate(r[joinedDateIdx]) : null;
+          const intervalRaw = intervalIdx >= 0 ? r[intervalIdx].toLowerCase() : "";
+          const recurring_interval = intervalRaw.startsWith("year") || intervalRaw === "annual" ? "year" : "month";
+
+          const explicitChurn = churnDateIdx >= 0 ? parseDate(r[churnDateIdx]) : null;
+          let churnDate: string;
+          let estimated: boolean;
+          if (explicitChurn) {
+            churnDate = explicitChurn;
+            estimated = false;
+          } else if (joinedDate && price > 0) {
+            const monthsLived = Math.max(1, Math.round(ltv / price));
+            const monthsToAdd = recurring_interval === "year" ? monthsLived * 12 : monthsLived;
+            churnDate = addMonths(joinedDate, monthsToAdd);
+            estimated = true;
+          } else {
+            churnDate = todayStr();
+            estimated = true;
+          }
+
+          const payload = {
+            date: churnDate,
             first_name: firstNameIdx >= 0 ? r[firstNameIdx] : "",
             last_name: lastNameIdx >= 0 ? r[lastNameIdx] : "",
-            email: emailIdx >= 0 ? r[emailIdx] : "",
-            joined_date: joinedRaw || null,
-            price_point: Number(priceStr) || 0,
+            email,
+            joined_date: joinedDate,
+            price_point: price,
             tier: tierIdx >= 0 ? r[tierIdx] : "",
-            ltv: Number(ltvStr) || 0,
+            ltv,
+            recurring_interval,
+            churn_date_estimated: estimated,
             notes: "",
           };
-        });
 
-        if (records.length === 0) {
-          toast({ title: "No valid rows", variant: "destructive" });
-          setChurnCsvImporting(false);
-          return;
-        }
+          // Dedupe by email (case-insensitive)
+          const { data: existing, error: lookupErr } = await supabase
+            .from("churn_events")
+            .select("id")
+            .ilike("email", email)
+            .maybeSingle();
 
-        // Clear existing and insert new
-        await supabase.from("churn_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-        for (let i = 0; i < records.length; i += 50) {
-          const chunk = records.slice(i, i + 50);
-          const { error } = await supabase.from("churn_events").insert(chunk as any);
-          if (error) {
-            toast({ title: "Import failed", description: error.message, variant: "destructive" });
+          if (lookupErr) {
+            toast({ title: "Import failed", description: lookupErr.message, variant: "destructive" });
             setChurnCsvImporting(false);
             return;
           }
+
+          if (existing?.id) {
+            const { error } = await supabase.from("churn_events").update(payload as any).eq("id", existing.id);
+            if (error) {
+              toast({ title: "Import failed", description: error.message, variant: "destructive" });
+              setChurnCsvImporting(false);
+              return;
+            }
+            updated++;
+          } else {
+            const { error } = await supabase.from("churn_events").insert(payload as any);
+            if (error) {
+              toast({ title: "Import failed", description: error.message, variant: "destructive" });
+              setChurnCsvImporting(false);
+              return;
+            }
+            added++;
+          }
         }
 
-        toast({ title: "Churn CSV imported", description: `${records.length} churned members imported.` });
+        toast({
+          title: "Churn CSV imported",
+          description: `${added} added, ${updated} updated (rejoin), ${skippedFree} skipped (free)${skippedNoEmail ? `, ${skippedNoEmail} skipped (no email)` : ""}.`,
+        });
         await loadChurnEvents();
       } catch (err) {
         toast({ title: "Import error", description: String(err), variant: "destructive" });
       }
       setChurnCsvImporting(false);
     };
+
     reader.readAsText(file);
     if (churnCsvInputRef.current) churnCsvInputRef.current.value = "";
   };
