@@ -37,18 +37,18 @@ export function MetricCard({ title, value, subtitle, trend, trendValue, icon, va
       <div className={`h-2 w-full border-b-3 border-ink ${variantStripe[variant]}`} />
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-ink">{title}</span>
+          <span className="font-mono text-xs font-bold uppercase tracking-widest text-ink">{title}</span>
           {icon && <span className="text-ink">{icon}</span>}
         </div>
-        <div className="font-display text-4xl text-ink leading-none">{value}</div>
+        <div className="font-display text-5xl text-ink leading-none">{value}</div>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
           {trend && trendValue && (
-            <span className={`flex items-center gap-1 font-mono text-[10px] font-bold uppercase ${trendColors[trend]}`}>
+            <span className={`flex items-center gap-1 font-mono text-xs font-bold uppercase ${trendColors[trend]}`}>
               {trendIcons[trend]}
               {trendValue}
             </span>
           )}
-          {subtitle && <span className="font-mono text-[10px] text-muted-foreground uppercase">{subtitle}</span>}
+          {subtitle && <span className="font-mono text-xs text-muted-foreground uppercase">{subtitle}</span>}
         </div>
       </div>
     </div>
