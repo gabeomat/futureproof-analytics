@@ -213,7 +213,7 @@ export function WorkshopFunnelOverview() {
       {/* Recurring Revenue Health */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold font-display text-foreground">Recurring Revenue Health</CardTitle>
+          <CardTitle className="text-lg font-semibold font-display text-foreground">Recurring Revenue Health</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
