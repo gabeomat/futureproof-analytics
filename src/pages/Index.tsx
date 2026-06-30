@@ -137,25 +137,25 @@ const Index = () => {
           </>
         ) : activeTab === "projections" ? (
           <>
-            <div>
-              <h2 className="font-display text-lg font-bold text-foreground">MRR Projection Playground</h2>
-              <p className="text-sm text-muted-foreground mt-1">Adjust the levers to see how growth, churn, and pricing changes impact your MRR trajectory</p>
+            <div className="border-l-4 border-terra pl-3">
+              <h2 className="font-display text-3xl text-ink leading-none">MRR Projection Playground</h2>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink/70 mt-2">Adjust the levers — growth, churn, pricing — to see your MRR trajectory</p>
             </div>
             <ProjectionPlayground />
           </>
         ) : activeTab === "data-entry" ? (
           <>
-            <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Monthly Data Entry</h2>
-              <p className="text-sm text-muted-foreground mt-1">Input your Skool MRR breakdown each month — New, Upgrades, Existing, Downgrades, Churn</p>
+            <div className="border-l-4 border-salmon pl-3">
+              <h2 className="font-display text-3xl text-ink leading-none">Monthly Data Entry</h2>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink/70 mt-2">Input Skool MRR breakdown — New · Upgrades · Existing · Downgrades · Churn</p>
             </div>
             <DataEntry />
           </>
         ) : (
           <>
-            <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Daily Tasks</h2>
-              <p className="text-sm text-muted-foreground mt-1">Track strategic output with weighted completion — checkboxes are nice, but weight is what moves the needle</p>
+            <div className="border-l-4 border-forest pl-3">
+              <h2 className="font-display text-3xl text-ink leading-none">Daily Tasks</h2>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink/70 mt-2">Track strategic output with weighted completion — weight moves the needle</p>
             </div>
             <TasksTab />
           </>
