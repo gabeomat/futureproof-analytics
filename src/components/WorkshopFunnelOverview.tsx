@@ -143,56 +143,56 @@ export function WorkshopFunnelOverview() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <CardTitle className="text-sm font-display font-semibold">
+                    <CardTitle className="text-lg font-display font-semibold">
                       {w.workshop_date} — {w.title}
                     </CardTitle>
-                    {w.notes && <p className="text-[11px] text-muted-foreground mt-1 italic">{w.notes}</p>}
+                    {w.notes && <p className="text-sm text-muted-foreground mt-1 italic">{w.notes}</p>}
                   </div>
-                  <Badge variant={status.variant} className="text-[10px]">{status.label}</Badge>
+                  <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Funnel breakdown */}
                 <div className="rounded-md border border-border p-3 space-y-2 bg-secondary/30">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Funnel</p>
-                  <div className="text-xs space-y-1 font-mono">
-                    <div className="flex justify-between">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Funnel</p>
+                  <div className="text-sm space-y-1.5 font-mono">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">Ad spend</span>
-                      <span className="text-foreground">{formatCurrency(totals.ad_spend)} · CPA {cpa != null ? formatCurrency(cpa) : "—"} · Blended {blended != null ? formatCurrency(blended) : "—"}</span>
+                      <span className="text-foreground text-right">{formatCurrency(totals.ad_spend)} · CPA {cpa != null ? formatCurrency(cpa) : "—"} · Blended {blended != null ? formatCurrency(blended) : "—"}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Registrations</span>
-                      <span className="text-foreground">{w.total_registrations} ({totals.regs_paid} paid + {totals.regs_org} organic from daily)</span>
+                      <span className="text-foreground text-right">{w.total_registrations} ({totals.regs_paid} paid + {totals.regs_org} organic from daily)</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Attended</span>
-                      <span className="text-foreground">
+                      <span className="text-foreground text-right">
                         {w.attended != null ? `${w.attended}${showRate != null ? ` (${showRate.toFixed(0)}% show)` : ""}` : "—"}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Intensive</span>
-                      <span className="text-foreground">
+                      <span className="text-foreground text-right">
                         {w.intensive_waitlist_mode
                           ? "Waitlist mode"
                           : `${w.intensive_applications} apps · ${w.intensive_declined} declined · ${w.intensive_closes} closes`}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Futureproof</span>
-                      <span className="text-foreground">{totals.fp_t27} std · {totals.fp_t47} prem · {totals.fp_t333} ann</span>
+                      <span className="text-foreground text-right">{totals.fp_t27} std · {totals.fp_t47} prem · {totals.fp_t333} ann</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Revenue rollup */}
                 <div className="rounded-md border border-primary/20 p-3 space-y-2 bg-primary/5">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Revenue</p>
-                  <div className="text-xs space-y-1 font-mono">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Revenue</p>
+                  <div className="text-sm space-y-1.5 font-mono">
                     <div className="flex justify-between"><span className="text-muted-foreground">Workshop</span><span>{formatCurrency(totals.workshop_rev)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Intensive</span><span>{formatCurrency(totals.intensive_rev)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Futureproof (one-time view)</span><span>{formatCurrency(fp_rev)}</span></div>
-                    <div className="flex justify-between font-semibold pt-1 border-t border-border mt-1">
+                    <div className="flex justify-between font-semibold pt-1 border-t border-border mt-1 text-base">
                       <span className="text-foreground">Total</span>
                       <span className="text-primary">{formatCurrency(totalRev)}</span>
                     </div>
@@ -213,7 +213,7 @@ export function WorkshopFunnelOverview() {
       {/* Recurring Revenue Health */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold font-display text-foreground">Recurring Revenue Health</CardTitle>
+          <CardTitle className="text-lg font-semibold font-display text-foreground">Recurring Revenue Health</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

@@ -65,15 +65,15 @@ export function AllRevenueOverview() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card className="bg-card border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-xs font-display">Workshop Funnel</CardTitle></CardHeader>
-          <CardContent className="text-xs font-mono space-y-1">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-display">Workshop Funnel</CardTitle></CardHeader>
+          <CardContent className="text-sm font-mono space-y-1.5">
             <div className="flex justify-between"><span className="text-muted-foreground">Ad spend</span><span>{formatCurrency(data.workshop.ad_spend)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="text-primary">{formatCurrency(data.workshop.revenue)}</span></div>
           </CardContent>
         </Card>
         <Card className="bg-card border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-xs font-display">Direct-to-Skool (incl. legacy)</CardTitle></CardHeader>
-          <CardContent className="text-xs font-mono space-y-1">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-display">Direct-to-Skool (incl. legacy)</CardTitle></CardHeader>
+          <CardContent className="text-sm font-mono space-y-1.5">
             <div className="flex justify-between"><span className="text-muted-foreground">Ad spend</span><span>{formatCurrency(data.direct.ad_spend)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="text-primary">{formatCurrency(data.direct.revenue)}</span></div>
           </CardContent>

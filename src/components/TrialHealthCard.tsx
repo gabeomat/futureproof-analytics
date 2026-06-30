@@ -38,17 +38,17 @@ export function TrialHealthCard() {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-foreground font-display flex items-center gap-2">
-          <Beaker className="w-4 h-4 text-primary" />
+        <CardTitle className="text-lg font-semibold text-foreground font-display flex items-center gap-2">
+          <Beaker className="w-5 h-5 text-primary" />
           Trial Health
-          <span className="text-[10px] font-mono text-muted-foreground font-normal">
+          <span className="text-xs font-mono text-muted-foreground font-normal">
             ({mature.length} mature cohort{mature.length === 1 ? "" : "s"})
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {mature.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">No mature cohorts yet (need ≥ 7 days since trial start).</p>
+          <p className="text-sm text-muted-foreground text-center py-6">No mature cohorts yet (need ≥ 7 days since trial start).</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Stat label="Mature Trial Starts" value={String(totalStarts)} />
@@ -66,8 +66,8 @@ export function TrialHealthCard() {
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="rounded-md border border-border bg-background/40 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`text-lg font-bold font-mono mt-1 ${highlight ? "text-primary" : "text-foreground"}`}>{value}</p>
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-bold font-mono mt-1 ${highlight ? "text-primary" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }
