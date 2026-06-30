@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/data";
+import { tierRevenue } from "@/lib/pricing";
 import { ChurnChart } from "@/components/ChurnAnalysis";
 import { MetricCard } from "@/components/MetricCard";
 import { useLiveMetrics } from "@/hooks/useLiveMetrics";
@@ -121,12 +122,13 @@ export function WorkshopFunnelOverview() {
               fp_t27: acc.fp_t27 + r.futureproof_t27,
               fp_t47: acc.fp_t47 + r.futureproof_t47,
               fp_t333: acc.fp_t333 + r.futureproof_t333,
+              fp_rev: acc.fp_rev + tierRevenue(r.date, { standard: r.futureproof_t27, premium: r.futureproof_t47, annual: r.futureproof_t333 }),
             }),
-            { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
+            { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0, fp_rev: 0 },
           );
-          // Derive Futureproof revenue from tier counts (source of truth) so it
-          // always reflects the displayed 1×$27 / 2×$47 / N×$333 breakdown.
-          const fp_rev = totals.fp_t27 * 27 + totals.fp_t47 * 47 + totals.fp_t333 * 333;
+          // Sum revenue per-row using date-aware pricing so legacy and new-pricing
+          // signups each apply the correct tier prices.
+          const fp_rev = totals.fp_rev;
           const totalRegs = totals.regs_paid + totals.regs_org;
           const cpa = totals.regs_paid > 0 ? totals.ad_spend / totals.regs_paid : null;
           const blended = totalRegs > 0 ? totals.ad_spend / totalRegs : null;
@@ -178,7 +180,7 @@ export function WorkshopFunnelOverview() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">→ Futureproof</span>
-                      <span className="text-foreground">{totals.fp_t27} × $27 · {totals.fp_t47} × $47 · {totals.fp_t333} × $333</span>
+                      <span className="text-foreground">{totals.fp_t27} std · {totals.fp_t47} prem · {totals.fp_t333} ann</span>
                     </div>
                   </div>
                 </div>
