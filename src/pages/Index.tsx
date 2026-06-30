@@ -12,6 +12,7 @@ import { DataEntry } from "@/components/DataEntry";
 import { TasksTab } from "@/components/TasksTab";
 import { AIInsights } from "@/components/AIInsights";
 import { WorkshopFunnelOverview } from "@/components/WorkshopFunnelOverview";
+import { TrialHealthCard } from "@/components/TrialHealthCard";
 import { AllRevenueOverview } from "@/components/AllRevenueOverview";
 import { formatCurrency, formatPercent } from "@/lib/data";
 import { useLiveMetrics } from "@/hooks/useLiveMetrics";
@@ -112,9 +113,15 @@ const Index = () => {
             </div>
 
             {funnelView === "workshop" ? (
-              <WorkshopFunnelOverview />
+              <>
+                <WorkshopFunnelOverview />
+                <TrialHealthCard />
+              </>
             ) : funnelView === "all" ? (
-              <AllRevenueOverview />
+              <>
+                <AllRevenueOverview />
+                <TrialHealthCard />
+              </>
             ) : (
               <>
                 {/* Direct-to-Skool legacy: original Overview */}
