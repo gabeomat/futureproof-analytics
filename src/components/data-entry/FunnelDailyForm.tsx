@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/data";
+import { tierPricesFor } from "@/lib/pricing";
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -98,10 +99,14 @@ export function FunnelDailyForm() {
     () => (draft.registrations_paid + draft.registrations_organic) * 27,
     [draft.registrations_paid, draft.registrations_organic],
   );
-  // Auto-calc futureproof revenue from tier counts (one-time first-month/annual view)
+  // Auto-calc futureproof revenue from tier counts using date-aware pricing.
+  const draftPrices = useMemo(() => tierPricesFor(draft.date), [draft.date]);
   const computedFutureproofRev = useMemo(
-    () => draft.futureproof_t27 * 27 + draft.futureproof_t47 * 47 + draft.futureproof_t333 * 333,
-    [draft.futureproof_t27, draft.futureproof_t47, draft.futureproof_t333],
+    () =>
+      draft.futureproof_t27 * draftPrices.standard +
+      draft.futureproof_t47 * draftPrices.premium +
+      draft.futureproof_t333 * draftPrices.annual,
+    [draft.futureproof_t27, draft.futureproof_t47, draft.futureproof_t333, draftPrices],
   );
 
   const [wsRevTouched, setWsRevTouched] = useState(false);
@@ -247,15 +252,15 @@ export function FunnelDailyForm() {
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Futureproof Downsell Signups</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Standard (${draftPrices.standard}/mo)</label>
                   <Input type="number" value={draft.futureproof_t27 || ""} onChange={(e) => setDraft((d) => ({ ...d, futureproof_t27: Number(e.target.value) || 0 }))} className="h-8 text-xs bg-background font-mono" />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Premium (${draftPrices.premium}/mo)</label>
                   <Input type="number" value={draft.futureproof_t47 || ""} onChange={(e) => setDraft((d) => ({ ...d, futureproof_t47: Number(e.target.value) || 0 }))} className="h-8 text-xs bg-background font-mono" />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Annual (${draftPrices.annual}/yr)</label>
                   <Input type="number" value={draft.futureproof_t333 || ""} onChange={(e) => setDraft((d) => ({ ...d, futureproof_t333: Number(e.target.value) || 0 }))} className="h-8 text-xs bg-background font-mono" />
                 </div>
                 <div>
@@ -303,7 +308,7 @@ export function FunnelDailyForm() {
                   <TableHead className="text-[10px] font-mono text-right">WS Rev</TableHead>
                   <TableHead className="text-[10px] font-mono text-right">Intensive</TableHead>
                   <TableHead className="text-[10px] font-mono text-right">FP Rev</TableHead>
-                  <TableHead className="text-[10px] font-mono text-right">FP (27/47/333)</TableHead>
+                  <TableHead className="text-[10px] font-mono text-right">FP (Std/Prem/Ann)</TableHead>
                   <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
