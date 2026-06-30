@@ -56,10 +56,10 @@ export function DualMRRView() {
       <div className="mt-4 rounded-lg border border-warning/20 bg-warning/5 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-warning">Annual Cash Not in MRR</p>
-            <p className="text-xs text-muted-foreground mt-1">{currentSnapshot.annualPayingMembers} annual members × avg $27.75/mo annualized</p>
+            <p className="text-sm font-medium text-warning">Annual Cash Not in MRR</p>
+            <p className="text-sm text-muted-foreground mt-1">{currentSnapshot.annualPayingMembers} annual members × avg $27.75/mo annualized</p>
           </div>
-          <p className="font-display text-lg font-bold text-warning">{formatCurrency(Math.round(currentSnapshot.annualizedContribution))}/mo</p>
+          <p className="font-display text-xl font-bold text-warning">{formatCurrency(Math.round(currentSnapshot.annualizedContribution))}/mo</p>
         </div>
       </div>
     </div>
