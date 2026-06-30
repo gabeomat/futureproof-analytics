@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus, NotebookPen, Sparkles, BarChart3 } from "lucide-react";
+import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus, NotebookPen, Sparkles, BarChart3, Beaker } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkshopForm } from "./data-entry/WorkshopForm";
 import { FunnelDailyForm } from "./data-entry/FunnelDailyForm";
+import { TrialCohortForm } from "./data-entry/TrialCohortForm";
 
 // --- Types ---
 
@@ -678,6 +679,10 @@ export function DataEntry() {
             <BarChart3 className="w-3.5 h-3.5" />
             Funnel Daily
           </TabsTrigger>
+          <TabsTrigger value="trial-cohorts" className="text-xs gap-1.5">
+            <Beaker className="w-3.5 h-3.5" />
+            Trial Cohorts
+          </TabsTrigger>
           <TabsTrigger value="daily" className="text-xs gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
             Skool Metrics
@@ -710,6 +715,10 @@ export function DataEntry() {
 
         <TabsContent value="funnel-daily" className="space-y-4 mt-4">
           <FunnelDailyForm />
+        </TabsContent>
+
+        <TabsContent value="trial-cohorts" className="space-y-4 mt-4">
+          <TrialCohortForm />
         </TabsContent>
 
         {/* ========== DAILY TAB ========== */}
