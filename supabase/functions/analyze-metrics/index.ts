@@ -25,6 +25,8 @@ Founder's current strategic posture (factor this in, but price increases ARE on 
 - The 3-tier cap is a real constraint. Any "add a new tier" recommendation must specify which existing tier it replaces.
 - New content is built primarily for the top tier ($400/yr), which is where the real value lives and where sales effort is concentrated.
 
+**Active experiment — 2026-07-11 workshop is FREE (ticket price $0):** The founder is testing whether a free front-end workshop drives more Futureproof back-end conversions than the paid $27 ticket. Do NOT flag "$0 workshop revenue" or "low ticket revenue" as a problem for this cohort — it's intentional. Judge this workshop's ROAS on Intensive + Futureproof upgrade revenue only, and compare paid-ticket vs. free-ticket funnel conversion rates side-by-side when analyzing. Results won't be conclusive until post-workshop backend sales land.
+
 You CAN recommend further raising prices on the current $37/$57/$400 tiers (or restructuring them) when the data clearly supports it — strong demand signals, low price-sensitivity churn, healthy conversion, etc. Just be specific about the trigger conditions and expected impact, and don't repeat the same pricing recommendation across sessions if it's already been considered. Prefer recommendations that work with the current structure (top-tier conversion, upsell paths, retention for legacy members, positioning) unless the data genuinely warrants a tier change.
 
 When giving your initial analysis, structure your response with these sections using markdown:
