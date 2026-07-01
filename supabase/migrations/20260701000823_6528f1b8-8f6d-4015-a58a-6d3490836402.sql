@@ -1,0 +1,1 @@
+UPDATE public.workshops SET notes = 'FREE WORKSHOP TEST — ticket price set to $0 to test whether a free front-end drives more Futureproof back-end conversions. No workshop ticket revenue expected; success measured by Intensive + Futureproof upgrades post-workshop.' WHERE id = '15168614-31f6-45d3-82c8-f736b6b6448d';
