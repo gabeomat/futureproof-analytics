@@ -32,10 +32,12 @@ interface MonthlyEntry {
   starting_mrr: number | null;
   new_mrr: number | null;
   expansion_mrr: number | null;
+  reactivation_mrr: number | null;
   contraction_mrr: number | null;
   churned_mrr: number | null;
   ending_mrr: number | null;
   revenue_churn_pct: number | null;
+  mrr_retention_pct_reported: number | null;
   includes_declines: boolean;
 }
 
@@ -80,10 +82,12 @@ const EMPTY_MONTHLY: MonthlyEntry = {
   starting_mrr: null,
   new_mrr: null,
   expansion_mrr: null,
+  reactivation_mrr: null,
   contraction_mrr: null,
   churned_mrr: null,
   ending_mrr: null,
   revenue_churn_pct: null,
+  mrr_retention_pct_reported: null,
   includes_declines: true,
 };
 const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0, organic_source: "" };
@@ -247,7 +251,8 @@ export function DataEntry() {
 
   // --- Monthly handlers ---
   const NUMERIC_MONTHLY_FIELDS = new Set<keyof MonthlyEntry>([
-    "starting_mrr", "new_mrr", "expansion_mrr", "contraction_mrr", "churned_mrr", "ending_mrr", "revenue_churn_pct",
+    "starting_mrr", "new_mrr", "expansion_mrr", "reactivation_mrr", "contraction_mrr",
+    "churned_mrr", "ending_mrr", "revenue_churn_pct", "mrr_retention_pct_reported",
   ]);
 
   const updateMonthly = (field: keyof MonthlyEntry, value: string | boolean) => {
@@ -285,10 +290,12 @@ export function DataEntry() {
       starting_mrr: monthlyDraft.starting_mrr,
       new_mrr: monthlyDraft.new_mrr,
       expansion_mrr: monthlyDraft.expansion_mrr,
+      reactivation_mrr: monthlyDraft.reactivation_mrr,
       contraction_mrr: monthlyDraft.contraction_mrr,
       churned_mrr: monthlyDraft.churned_mrr,
       ending_mrr: monthlyDraft.ending_mrr,
       revenue_churn_pct: monthlyDraft.revenue_churn_pct,
+      mrr_retention_pct_reported: monthlyDraft.mrr_retention_pct_reported,
       includes_declines: monthlyDraft.includes_declines,
     };
     const { error } = await supabase
@@ -320,9 +327,15 @@ export function DataEntry() {
   const monthlyWaterfallDiff = (() => {
     const d = monthlyDraft;
     if (d.starting_mrr == null || d.ending_mrr == null) return null;
-    const expected = (d.starting_mrr || 0) + (d.new_mrr || 0) + (d.expansion_mrr || 0) - (d.contraction_mrr || 0) - (d.churned_mrr || 0);
+    const expected =
+      (d.starting_mrr || 0) +
+      (d.new_mrr || 0) +
+      (d.expansion_mrr || 0) +
+      (d.reactivation_mrr || 0) -
+      (d.contraction_mrr || 0) -
+      (d.churned_mrr || 0);
     const diff = expected - d.ending_mrr;
-    return Math.abs(diff) > 1 ? diff : null;
+    return Math.abs(diff) > 2 ? diff : null;
   })();
 
   const monthlyChurnCrossDiff = (() => {
@@ -331,6 +344,17 @@ export function DataEntry() {
     const impliedPct = (d.churned_mrr / d.starting_mrr) * 100;
     const gap = impliedPct - d.revenue_churn_pct;
     return Math.abs(gap) > 1 ? { impliedPct, entered: d.revenue_churn_pct } : null;
+  })();
+
+  const monthlyRetentionCrossDiff = (() => {
+    const d = monthlyDraft;
+    if (!d.starting_mrr || d.mrr_retention_pct_reported == null) return null;
+    const computed =
+      ((d.starting_mrr - (d.churned_mrr || 0) - (d.contraction_mrr || 0) +
+        (d.expansion_mrr || 0) + (d.reactivation_mrr || 0)) /
+        d.starting_mrr) * 100;
+    const gap = computed - d.mrr_retention_pct_reported;
+    return Math.abs(gap) > 2 ? { computedPct: computed, reported: d.mrr_retention_pct_reported } : null;
   })();
 
   const monthlyDailyMrrDiff = (() => {
@@ -1117,6 +1141,10 @@ export function DataEntry() {
                       <Input type="number" value={monthlyDraft.expansion_mrr ?? ""} onChange={(e) => updateMonthly("expansion_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                     </div>
                     <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Reactivation MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.reactivation_mrr ?? ""} onChange={(e) => updateMonthly("reactivation_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraction (downgrades) ($)</label>
                       <Input type="number" value={monthlyDraft.contraction_mrr ?? ""} onChange={(e) => updateMonthly("contraction_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                     </div>
@@ -1139,6 +1167,17 @@ export function DataEntry() {
                         className="h-8 text-xs bg-background font-mono"
                       />
                     </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">MRR Retention % (from Skool)</label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={monthlyDraft.mrr_retention_pct_reported ?? ""}
+                        onChange={(e) => updateMonthly("mrr_retention_pct_reported", e.target.value)}
+                        placeholder="e.g. 77"
+                        className="h-8 text-xs bg-background font-mono"
+                      />
+                    </div>
                   </div>
                   <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
                     <input
@@ -1151,13 +1190,16 @@ export function DataEntry() {
                   </label>
 
                   {/* Inline validation — non-blocking */}
-                  {(monthlyWaterfallDiff !== null || monthlyChurnCrossDiff !== null || monthlyDailyMrrDiff !== null) && (
+                  {(monthlyWaterfallDiff !== null || monthlyChurnCrossDiff !== null || monthlyRetentionCrossDiff !== null || monthlyDailyMrrDiff !== null) && (
                     <div className="space-y-1 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-300 font-mono">
                       {monthlyWaterfallDiff !== null && (
                         <div>Waterfall is off by {formatCurrency(Math.abs(monthlyWaterfallDiff))} — check your entries.</div>
                       )}
                       {monthlyChurnCrossDiff !== null && (
                         <div>Skool says {monthlyChurnCrossDiff.entered.toFixed(1)}%, dollars imply {monthlyChurnCrossDiff.impliedPct.toFixed(1)}%. Both saved.</div>
+                      )}
+                      {monthlyRetentionCrossDiff !== null && (
+                        <div>Skool reports {monthlyRetentionCrossDiff.reported.toFixed(1)}%, our waterfall implies {monthlyRetentionCrossDiff.computedPct.toFixed(1)}%. Both saved.</div>
                       )}
                       {monthlyDailyMrrDiff !== null && (
                         <div>Ending MRR is {formatCurrency(Math.abs(monthlyDailyMrrDiff.diff))} off latest daily read ({formatCurrency(monthlyDailyMrrDiff.latest)}).</div>
