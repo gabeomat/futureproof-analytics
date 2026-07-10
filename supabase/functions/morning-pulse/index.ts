@@ -66,50 +66,54 @@ Deno.serve(async (req) => {
     churnWindowStart.setDate(churnWindowStart.getDate() - churnWindowDays);
     const churnWindowStartStr = churnWindowStart.toISOString().split("T")[0];
 
+    const errors: Array<{ key: string; message: string }> = [];
+    const safe = async <T,>(key: string, run: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+      try {
+        const { data, error } = await run();
+        if (error) {
+          errors.push({ key, message: error.message });
+          return null;
+        }
+        return (data ?? null) as T | null;
+      } catch (e: any) {
+        errors.push({ key, message: e?.message ?? String(e) });
+        return null;
+      }
+    };
+
     const [
-      ceoNotes,
-      dailyMetrics,
-      dailyAcquisitions,
-      monthlyRevenue,
-      churnEvents,
-      strategyNotes,
-      aiConversations,
-      tasksRes,
-      workshopsRes,
-      funnelDailyRes,
+      ceoNotesData,
+      dailyMetricsData,
+      dailyAcquisitionsData,
+      monthlyRevenueData,
+      churnEventsData,
+      strategyNotesData,
+      aiConversationsData,
+      tasksData,
+      workshopsData,
+      funnelDailyData,
     ] = await Promise.all([
-      supabase.from("ceo_notes").select("*").order("date", { ascending: false }),
-      supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
-      supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr),
-      supabase.from("monthly_revenue").select("*").order("month_start", { ascending: false }),
-      // Include rows within the churn window OR future-dated (prepaid annual/quarterly renewal cliffs).
-      supabase.from("churn_events").select("*").order("date", { ascending: false }).or(`date.gte.${churnWindowStartStr},date.gt.${todayStr}`),
-      supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(5),
-      supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(3),
-      supabase
+      safe<any[]>("ceo_notes", () => supabase.from("ceo_notes").select("*").order("date", { ascending: false })),
+      safe<any[]>("daily_metrics", () => supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30)),
+      safe<any[]>("daily_acquisitions", () => supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr)),
+      safe<any[]>("monthly_revenue", () => supabase.from("monthly_revenue").select("*").order("month_start", { ascending: false })),
+      safe<any[]>("churn_events", () => supabase.from("churn_events").select("*").order("date", { ascending: false }).or(`date.gte.${churnWindowStartStr},date.gt.${todayStr}`)),
+      safe<any[]>("strategy_notes", () => supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(5)),
+      safe<any[]>("ai_conversations", () => supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(3)),
+      safe<any[]>("tasks", () => supabase
         .from("tasks")
         .select("label, category, date, is_completed, is_default, sort_order, weight")
         .order("date", { ascending: false })
         .order("sort_order", { ascending: true })
-        .limit(30),
-      supabase.from("workshops").select("*").order("workshop_date", { ascending: false }),
-      supabase.from("funnel_daily").select("*").order("date", { ascending: false }),
+        .limit(30)),
+      safe<any[]>("workshops", () => supabase.from("workshops").select("*").order("workshop_date", { ascending: false })),
+      safe<any[]>("funnel_daily", () => supabase.from("funnel_daily").select("*").order("date", { ascending: false })),
     ]);
 
-    // Check for errors
-    const queries = { ceoNotes, dailyMetrics, dailyAcquisitions, monthlyRevenue, churnEvents, strategyNotes, aiConversations, tasksRes, workshopsRes, funnelDailyRes };
-    for (const [name, result] of Object.entries(queries)) {
-      if (result.error) {
-        return new Response(JSON.stringify({ error: `Failed to fetch ${name}: ${result.error.message}` }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     // Build workshop activity section
-    const workshops = workshopsRes.data ?? [];
-    const funnelDaily = funnelDailyRes.data ?? [];
+    const workshops = workshopsData ?? [];
+    const funnelDaily = funnelDailyData ?? [];
+
 
     // Active workshop: smallest workshop_date >= today (upcoming), else most recently closed
     const upcoming = [...workshops]
@@ -172,14 +176,14 @@ Deno.serve(async (req) => {
       activeWorkshopStatus === "closed" && activeWorkshop && activeWorkshop.workshop_date < fourteenDaysAgoStr;
     const flagFlyingBlind = !!activeWorkshop && activeWorkshopRows.length === 0 && !isStaleClosed;
 
-    // Direct-to-Skool legacy: only surface if rows in last 3 days
-    const directSkoolRecent = (dailyAcquisitions.data ?? []).filter((r: any) => r.date >= threeDaysAgoStr);
+    const dailyAcquisitionsList = dailyAcquisitionsData ?? [];
+    const directSkoolRecent = dailyAcquisitionsList.filter((r: any) => r.date >= threeDaysAgoStr);
 
     return new Response(JSON.stringify({
       pulled_at: new Date().toISOString(),
-      ceo_notes: ceoNotes.data,
-      daily_metrics: dailyMetrics.data,
-      monthly_revenue: (monthlyRevenue.data ?? []).map((r: any) => {
+      ceo_notes: ceoNotesData,
+      daily_metrics: dailyMetricsData,
+      monthly_revenue: (monthlyRevenueData ?? []).map((r: any) => {
         const start = r.starting_mrr == null ? null : Number(r.starting_mrr);
         const exp = Number(r.expansion_mrr ?? 0);
         const contr = Number(r.contraction_mrr ?? 0);
@@ -187,11 +191,10 @@ Deno.serve(async (req) => {
         const nrr = start && start !== 0 ? (start + exp - contr - churn) / start : null;
         return { ...r, net_revenue_retention: nrr };
       }),
-      churn_events: churnEvents.data,
-      strategy_notes: strategyNotes.data,
-      ai_conversations: aiConversations.data,
-      tasks: tasksRes.data,
-      // Section 2: ad activity — workshop-funnel-first
+      churn_events: churnEventsData,
+      strategy_notes: strategyNotesData,
+      ai_conversations: aiConversationsData,
+      tasks: tasksData,
       ad_activity: {
         active_workshop: activeWorkshop
           ? { ...activeWorkshop, status: activeWorkshopStatus }
@@ -200,18 +203,19 @@ Deno.serve(async (req) => {
         active_workshop_totals: activeWorkshopTotals,
         today_all_funnels: todayAllFunnels,
         flag_flying_blind: flagFlyingBlind,
-        // Direct-to-Skool legacy: only present if there's recent (≤3d) activity
         direct_skool_legacy_recent: directSkoolRecent.length > 0 ? directSkoolRecent : null,
         direct_skool_funnel_last_7d: funnelDaily.filter((r: any) => r.funnel === "direct_skool" && r.date >= sevenDaysAgoStr),
       },
+      errors,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
