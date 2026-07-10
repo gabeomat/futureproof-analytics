@@ -1,0 +1,1 @@
+ALTER TABLE public.workshops DROP COLUMN total_registrations;

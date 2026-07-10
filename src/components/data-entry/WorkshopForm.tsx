@@ -20,7 +20,7 @@ type Workshop = {
   registration_window_end: string;
   intensive_price: number;
   intensive_waitlist_mode: boolean;
-  total_registrations: number;
+  
   meta_attributed_registrations: number;
   attended: number | null;
   intensive_applications: number;
@@ -34,7 +34,7 @@ const NEW_WORKSHOP = {
   title: "Create Your Living Workspace",
   registration_window_start: todayStr(),
   registration_window_end: todayStr(),
-  intensive_price: 1997,
+  intensive_price: 3000,
   intensive_waitlist_mode: true,
 };
 
@@ -94,7 +94,7 @@ export function WorkshopForm() {
     setSaving(true);
     const payload = {
       attended: draft.attended,
-      total_registrations: draft.total_registrations ?? 0,
+      
       meta_attributed_registrations: draft.meta_attributed_registrations ?? 0,
       intensive_applications: draft.intensive_applications ?? 0,
       intensive_declined: draft.intensive_declined ?? 0,
@@ -227,8 +227,8 @@ export function WorkshopForm() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {numField("total_registrations", "Total Registrations")}
               {numField("meta_attributed_registrations", "Meta Attributed")}
+
               {numField("attended", "Attended (blank if unknown)")}
               {numField("intensive_applications", "Intensive Applications")}
               {numField("intensive_declined", "Intensive Declined")}

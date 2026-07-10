@@ -16,7 +16,7 @@ type Workshop = {
   title: string;
   intensive_price: number;
   intensive_waitlist_mode: boolean;
-  total_registrations: number;
+  
   meta_attributed_registrations: number;
   attended: number | null;
   intensive_applications: number;
@@ -132,8 +132,9 @@ export function WorkshopFunnelOverview() {
           const totalRegs = totals.regs_paid + totals.regs_org;
           const cpa = totals.regs_paid > 0 ? totals.ad_spend / totals.regs_paid : null;
           const blended = totalRegs > 0 ? totals.ad_spend / totalRegs : null;
-          const showRate = w.attended != null && w.total_registrations > 0
-            ? (w.attended / w.total_registrations) * 100 : null;
+          const showRate = w.attended != null && totalRegs > 0
+            ? (w.attended / totalRegs) * 100 : null;
+
           const totalRev = totals.workshop_rev + totals.intensive_rev + fp_rev;
           const roas = totals.ad_spend > 0 ? totalRev / totals.ad_spend : 0;
           const status = workshopStatus(w.workshop_date);
@@ -162,7 +163,8 @@ export function WorkshopFunnelOverview() {
                     </div>
                     <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Registrations</span>
-                      <span className="text-foreground text-right">{w.total_registrations} ({totals.regs_paid} paid + {totals.regs_org} organic from daily)</span>
+                      <span className="text-foreground text-right">{totalRegs} ({totals.regs_paid} paid + {totals.regs_org} organic from daily)</span>
+
                     </div>
                     <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Attended</span>
