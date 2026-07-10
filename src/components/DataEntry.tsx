@@ -1190,13 +1190,16 @@ export function DataEntry() {
                   </label>
 
                   {/* Inline validation — non-blocking */}
-                  {(monthlyWaterfallDiff !== null || monthlyChurnCrossDiff !== null || monthlyDailyMrrDiff !== null) && (
+                  {(monthlyWaterfallDiff !== null || monthlyChurnCrossDiff !== null || monthlyRetentionCrossDiff !== null || monthlyDailyMrrDiff !== null) && (
                     <div className="space-y-1 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-300 font-mono">
                       {monthlyWaterfallDiff !== null && (
                         <div>Waterfall is off by {formatCurrency(Math.abs(monthlyWaterfallDiff))} — check your entries.</div>
                       )}
                       {monthlyChurnCrossDiff !== null && (
                         <div>Skool says {monthlyChurnCrossDiff.entered.toFixed(1)}%, dollars imply {monthlyChurnCrossDiff.impliedPct.toFixed(1)}%. Both saved.</div>
+                      )}
+                      {monthlyRetentionCrossDiff !== null && (
+                        <div>Skool reports {monthlyRetentionCrossDiff.reported.toFixed(1)}%, our waterfall implies {monthlyRetentionCrossDiff.computedPct.toFixed(1)}%. Both saved.</div>
                       )}
                       {monthlyDailyMrrDiff !== null && (
                         <div>Ending MRR is {formatCurrency(Math.abs(monthlyDailyMrrDiff.diff))} off latest daily read ({formatCurrency(monthlyDailyMrrDiff.latest)}).</div>
