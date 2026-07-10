@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       tasksData,
       workshopsData,
       funnelDailyData,
+      trialCohortsData,
     ] = await Promise.all([
       safe<any[]>("ceo_notes", () => supabase.from("ceo_notes").select("*").order("date", { ascending: false })),
       safe<any[]>("daily_metrics", () => supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30)),
@@ -108,7 +109,57 @@ Deno.serve(async (req) => {
         .limit(30)),
       safe<any[]>("workshops", () => supabase.from("workshops").select("*").order("workshop_date", { ascending: false })),
       safe<any[]>("funnel_daily", () => supabase.from("funnel_daily").select("*").order("date", { ascending: false })),
+      safe<any[]>("trial_cohorts", () => supabase.from("trial_cohorts").select("*").order("trial_start_date", { ascending: false })),
     ]);
+
+    // Trial cohorts aggregation (exclude immature cohorts from rates)
+    const trialCohorts = trialCohortsData ?? [];
+    const todayMs = new Date(todayStr + "T00:00:00Z").getTime();
+    const DAY = 86400000;
+    let ts_sum = 0, d7_paid_sum = 0, d30_paid_sum = 0;
+    let d7_matured_starts = 0, d30_matured_starts = 0;
+    let d7_matured_cohorts = 0, d30_matured_cohorts = 0;
+    let ad_spend_sum = 0, first_pmt_sum = 0;
+    for (const r of trialCohorts) {
+      const startMs = new Date(r.trial_start_date + "T00:00:00Z").getTime();
+      const starts = Number(r.trial_starts) || 0;
+      ts_sum += starts;
+      d7_paid_sum += Number(r.day7_paid) || 0;
+      d30_paid_sum += Number(r.day30_still_paid) || 0;
+      ad_spend_sum += Number(r.ad_spend_attributed) || 0;
+      first_pmt_sum += Number(r.first_payment_revenue) || 0;
+      if (todayMs >= startMs + 7 * DAY) {
+        d7_matured_cohorts += 1;
+        d7_matured_starts += starts;
+      }
+      if (todayMs >= startMs + 30 * DAY) {
+        d30_matured_cohorts += 1;
+        d30_matured_starts += starts;
+      }
+    }
+    // Rate sums restricted to matured cohorts
+    let d7_paid_matured = 0, d30_paid_matured = 0;
+    for (const r of trialCohorts) {
+      const startMs = new Date(r.trial_start_date + "T00:00:00Z").getTime();
+      if (todayMs >= startMs + 7 * DAY) d7_paid_matured += Number(r.day7_paid) || 0;
+      if (todayMs >= startMs + 30 * DAY) d30_paid_matured += Number(r.day30_still_paid) || 0;
+    }
+    const trialCohortsSection = {
+      recent: trialCohorts,
+      totals: {
+        trial_starts: ts_sum,
+        day7_paid: d7_paid_sum,
+        day30_still_paid: d30_paid_sum,
+        cohorts_matured_day7: d7_matured_cohorts,
+        cohorts_matured_day30: d30_matured_cohorts,
+        day7_conversion_rate: d7_matured_starts > 0 ? d7_paid_matured / d7_matured_starts : null,
+        day30_retention_rate: d30_matured_starts > 0 ? d30_paid_matured / d30_matured_starts : null,
+        ad_spend_attributed: ad_spend_sum,
+        first_payment_revenue: first_pmt_sum,
+        cac_per_paid_trial: d7_paid_sum > 0 ? ad_spend_sum / d7_paid_sum : null,
+      },
+    };
+
 
     // Build workshop activity section
     const workshops = workshopsData ?? [];
@@ -206,6 +257,7 @@ Deno.serve(async (req) => {
         direct_skool_legacy_recent: directSkoolRecent.length > 0 ? directSkoolRecent : null,
         direct_skool_funnel_last_7d: funnelDaily.filter((r: any) => r.funnel === "direct_skool" && r.date >= sevenDaysAgoStr),
       },
+      trial_cohorts: trialCohortsSection,
       errors,
     }), {
       status: 200,
