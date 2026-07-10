@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       supabase.from("ceo_notes").select("*").order("date", { ascending: false }),
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr),
-      supabase.from("monthly_revenue").select("*").order("month", { ascending: false }),
+      supabase.from("monthly_revenue").select("*").order("month_start", { ascending: false }),
       // Include rows within the churn window OR future-dated (prepaid annual/quarterly renewal cliffs).
       supabase.from("churn_events").select("*").order("date", { ascending: false }).or(`date.gte.${churnWindowStartStr},date.gt.${todayStr}`),
       supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(5),
@@ -179,7 +179,14 @@ Deno.serve(async (req) => {
       pulled_at: new Date().toISOString(),
       ceo_notes: ceoNotes.data,
       daily_metrics: dailyMetrics.data,
-      monthly_revenue: monthlyRevenue.data,
+      monthly_revenue: (monthlyRevenue.data ?? []).map((r: any) => {
+        const start = r.starting_mrr == null ? null : Number(r.starting_mrr);
+        const exp = Number(r.expansion_mrr ?? 0);
+        const contr = Number(r.contraction_mrr ?? 0);
+        const churn = Number(r.churned_mrr ?? 0);
+        const nrr = start && start !== 0 ? (start + exp - contr - churn) / start : null;
+        return { ...r, net_revenue_retention: nrr };
+      }),
       churn_events: churnEvents.data,
       strategy_notes: strategyNotes.data,
       ai_conversations: aiConversations.data,

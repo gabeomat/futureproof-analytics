@@ -28,9 +28,15 @@ interface DailyEntry {
 
 interface MonthlyEntry {
   id?: string;
-  month: string;
-  new_revenue: number;
-  revenue_churn: number;
+  month_start: string;          // YYYY-MM-01
+  starting_mrr: number | null;
+  new_mrr: number | null;
+  expansion_mrr: number | null;
+  contraction_mrr: number | null;
+  churned_mrr: number | null;
+  ending_mrr: number | null;
+  revenue_churn_pct: number | null;
+  includes_declines: boolean;
 }
 
 interface AcquisitionEntry {
@@ -69,7 +75,17 @@ const DAILY_FIELDS: { key: keyof Omit<DailyEntry, "date" | "id">; label: string;
 ];
 
 const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_page_traffic: 0, discovery_rank: 0, profile_activity: 0, group_activity: 0 };
-const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
+const EMPTY_MONTHLY: MonthlyEntry = {
+  month_start: "",
+  starting_mrr: null,
+  new_mrr: null,
+  expansion_mrr: null,
+  contraction_mrr: null,
+  churned_mrr: null,
+  ending_mrr: null,
+  revenue_churn_pct: null,
+  includes_declines: true,
+};
 const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0, organic_source: "" };
 
 interface ChurnEntry {
@@ -177,11 +193,11 @@ export function DataEntry() {
     const { data, error } = await supabase
       .from("monthly_revenue")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("month_start", { ascending: false });
     if (error) {
       toast({ title: "Failed to load monthly data", description: error.message, variant: "destructive" });
     } else {
-      setMonthlyEntries(data || []);
+      setMonthlyEntries((data || []) as MonthlyEntry[]);
     }
     setMonthlyLoading(false);
   };
@@ -230,26 +246,54 @@ export function DataEntry() {
   };
 
   // --- Monthly handlers ---
-  const updateMonthly = (field: keyof MonthlyEntry, value: string) => {
-    if (field === "month") {
-      setMonthlyDraft((d) => ({ ...d, month: value }));
-    } else if (field !== "id") {
-      const num = value === "" ? 0 : Number(value);
-      if (value !== "" && isNaN(num)) return;
+  const NUMERIC_MONTHLY_FIELDS = new Set<keyof MonthlyEntry>([
+    "starting_mrr", "new_mrr", "expansion_mrr", "contraction_mrr", "churned_mrr", "ending_mrr", "revenue_churn_pct",
+  ]);
+
+  const updateMonthly = (field: keyof MonthlyEntry, value: string | boolean) => {
+    if (field === "month_start" && typeof value === "string") {
+      // value from <input type="month"> is "YYYY-MM"; store as first-of-month date.
+      const monthStart = value ? `${value}-01` : "";
+      setMonthlyDraft((d) => {
+        const next = { ...d, month_start: monthStart };
+        // Auto-fill starting_mrr from prior month's ending_mrr (editable).
+        if (monthStart && (d.starting_mrr === null || d.starting_mrr === 0)) {
+          const priorEnd = [...monthlyEntries]
+            .filter((e) => e.month_start < monthStart && e.ending_mrr != null)
+            .sort((a, b) => b.month_start.localeCompare(a.month_start))[0]?.ending_mrr;
+          if (priorEnd != null) next.starting_mrr = Number(priorEnd);
+        }
+        return next;
+      });
+    } else if (field === "includes_declines" && typeof value === "boolean") {
+      setMonthlyDraft((d) => ({ ...d, includes_declines: value }));
+    } else if (NUMERIC_MONTHLY_FIELDS.has(field) && typeof value === "string") {
+      const num = value === "" ? null : Number(value);
+      if (value !== "" && isNaN(num as number)) return;
       setMonthlyDraft((d) => ({ ...d, [field]: num }));
     }
   };
 
   const addMonthly = async () => {
-    if (!monthlyDraft.month.trim()) {
-      toast({ title: "Month required", description: "e.g. 'Apr 2026'", variant: "destructive" });
+    if (!monthlyDraft.month_start) {
+      toast({ title: "Month required", variant: "destructive" });
       return;
     }
     setMonthlySaving(true);
-    const { month, new_revenue, revenue_churn } = monthlyDraft;
+    const payload = {
+      month_start: monthlyDraft.month_start,
+      starting_mrr: monthlyDraft.starting_mrr,
+      new_mrr: monthlyDraft.new_mrr,
+      expansion_mrr: monthlyDraft.expansion_mrr,
+      contraction_mrr: monthlyDraft.contraction_mrr,
+      churned_mrr: monthlyDraft.churned_mrr,
+      ending_mrr: monthlyDraft.ending_mrr,
+      revenue_churn_pct: monthlyDraft.revenue_churn_pct,
+      includes_declines: monthlyDraft.includes_declines,
+    };
     const { error } = await supabase
       .from("monthly_revenue")
-      .upsert({ month, new_revenue, revenue_churn }, { onConflict: "month" });
+      .upsert(payload, { onConflict: "month_start" });
 
     if (error) {
       toast({ title: "Failed to save", description: error.message, variant: "destructive" });
@@ -271,6 +315,37 @@ export function DataEntry() {
       setMonthlyEntries((prev) => prev.filter((e) => e.id !== entry.id));
     }
   };
+
+  // --- Monthly derived validation (inline warnings, non-blocking) ---
+  const monthlyWaterfallDiff = (() => {
+    const d = monthlyDraft;
+    if (d.starting_mrr == null || d.ending_mrr == null) return null;
+    const expected = (d.starting_mrr || 0) + (d.new_mrr || 0) + (d.expansion_mrr || 0) - (d.contraction_mrr || 0) - (d.churned_mrr || 0);
+    const diff = expected - d.ending_mrr;
+    return Math.abs(diff) > 1 ? diff : null;
+  })();
+
+  const monthlyChurnCrossDiff = (() => {
+    const d = monthlyDraft;
+    if (!d.starting_mrr || d.churned_mrr == null || d.revenue_churn_pct == null) return null;
+    const impliedPct = (d.churned_mrr / d.starting_mrr) * 100;
+    const gap = impliedPct - d.revenue_churn_pct;
+    return Math.abs(gap) > 1 ? { impliedPct, entered: d.revenue_churn_pct } : null;
+  })();
+
+  const monthlyDailyMrrDiff = (() => {
+    const d = monthlyDraft;
+    if (!d.month_start || d.ending_mrr == null) return null;
+    const monthPrefix = d.month_start.slice(0, 7); // YYYY-MM
+    const inMonth = dailyEntries
+      .filter((e) => e.date.startsWith(monthPrefix))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    if (inMonth.length === 0) return null;
+    const latest = Number(inMonth[0].mrr);
+    const diff = d.ending_mrr - latest;
+    return Math.abs(diff) > 50 ? { diff, latest } : null;
+  })();
+
 
   // --- Acquisition handlers ---
   const loadAcquisitions = async () => {
@@ -1010,37 +1085,86 @@ export function DataEntry() {
             <CardContent>
               {showMonthlyForm && (
                 <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Monthly Revenue Read (from Skool) — enter the waterfall Skool shows for the month.
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Month</label>
                       <Input
-                        value={monthlyDraft.month}
-                        onChange={(e) => updateMonthly("month", e.target.value)}
-                        placeholder="Apr 2026"
+                        type="month"
+                        value={monthlyDraft.month_start ? monthlyDraft.month_start.slice(0, 7) : ""}
+                        onChange={(e) => updateMonthly("month_start", e.target.value)}
                         className="h-8 text-xs bg-background"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">New Revenue ($)</label>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Starting MRR ($)</label>
                       <Input
                         type="number"
-                        value={monthlyDraft.new_revenue || ""}
-                        onChange={(e) => updateMonthly("new_revenue", e.target.value)}
-                        placeholder="1249"
+                        value={monthlyDraft.starting_mrr ?? ""}
+                        onChange={(e) => updateMonthly("starting_mrr", e.target.value)}
+                        placeholder="auto from prior month"
                         className="h-8 text-xs bg-background font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Revenue Churn ($)</label>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">New MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.new_mrr ?? ""} onChange={(e) => updateMonthly("new_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Expansion (upgrades) ($)</label>
+                      <Input type="number" value={monthlyDraft.expansion_mrr ?? ""} onChange={(e) => updateMonthly("expansion_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraction (downgrades) ($)</label>
+                      <Input type="number" value={monthlyDraft.contraction_mrr ?? ""} onChange={(e) => updateMonthly("contraction_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Churned MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.churned_mrr ?? ""} onChange={(e) => updateMonthly("churned_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Ending MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.ending_mrr ?? ""} onChange={(e) => updateMonthly("ending_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Revenue Churn % (from Skool)</label>
                       <Input
                         type="number"
-                        value={monthlyDraft.revenue_churn || ""}
-                        onChange={(e) => updateMonthly("revenue_churn", e.target.value)}
-                        placeholder="231"
+                        step="0.1"
+                        value={monthlyDraft.revenue_churn_pct ?? ""}
+                        onChange={(e) => updateMonthly("revenue_churn_pct", e.target.value)}
+                        placeholder="e.g. 14.3"
                         className="h-8 text-xs bg-background font-mono"
                       />
                     </div>
                   </div>
+                  <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={monthlyDraft.includes_declines}
+                      onChange={(e) => updateMonthly("includes_declines", e.target.checked)}
+                      className="w-4 h-4 rounded border-border"
+                    />
+                    Includes decline churns
+                  </label>
+
+                  {/* Inline validation — non-blocking */}
+                  {(monthlyWaterfallDiff !== null || monthlyChurnCrossDiff !== null || monthlyDailyMrrDiff !== null) && (
+                    <div className="space-y-1 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-300 font-mono">
+                      {monthlyWaterfallDiff !== null && (
+                        <div>Waterfall is off by {formatCurrency(Math.abs(monthlyWaterfallDiff))} — check your entries.</div>
+                      )}
+                      {monthlyChurnCrossDiff !== null && (
+                        <div>Skool says {monthlyChurnCrossDiff.entered.toFixed(1)}%, dollars imply {monthlyChurnCrossDiff.impliedPct.toFixed(1)}%. Both saved.</div>
+                      )}
+                      {monthlyDailyMrrDiff !== null && (
+                        <div>Ending MRR is {formatCurrency(Math.abs(monthlyDailyMrrDiff.diff))} off latest daily read ({formatCurrency(monthlyDailyMrrDiff.latest)}).</div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button size="sm" onClick={addMonthly} disabled={monthlySaving} className="text-xs">
                       {monthlySaving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
@@ -1060,31 +1184,37 @@ export function DataEntry() {
                 <div className="text-center py-12 text-muted-foreground">
                   <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-40" />
                   <p className="text-sm">No monthly entries yet</p>
-                  <p className="text-xs mt-1">Track your new revenue and churn each month</p>
+                  <p className="text-xs mt-1">Track your MRR waterfall each month</p>
                 </div>
               ) : monthlyEntries.length > 0 && (
-                <div className="rounded-md border border-border overflow-hidden">
+                <div className="rounded-md border border-border overflow-hidden overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-secondary/50">
                         <TableHead className="text-[10px] font-mono">Month</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">New Revenue</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Revenue Churn</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Net</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Start</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">New</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Exp</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Contr</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Churned</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">End</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Churn %</TableHead>
                         <TableHead className="w-8"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {monthlyEntries.map((entry, i) => {
-                        const net = entry.new_revenue - entry.revenue_churn;
+                        const fmt = (v: number | null) => v == null ? "—" : formatCurrency(Number(v));
                         return (
                           <TableRow key={entry.id || i} className="group">
-                            <TableCell className="text-xs font-medium text-foreground">{entry.month}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-emerald-400">+{formatCurrency(entry.new_revenue)}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-red-400">-{formatCurrency(entry.revenue_churn)}</TableCell>
-                            <TableCell className={`text-xs text-right font-mono font-semibold ${net >= 0 ? "text-primary" : "text-red-400"}`}>
-                              {net >= 0 ? "+" : ""}{formatCurrency(net)}
-                            </TableCell>
+                            <TableCell className="text-xs font-medium text-foreground">{entry.month_start}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{fmt(entry.starting_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-emerald-400">{fmt(entry.new_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-emerald-300">{fmt(entry.expansion_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-amber-400">{fmt(entry.contraction_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-red-400">{fmt(entry.churned_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground font-semibold">{fmt(entry.ending_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-primary">{entry.revenue_churn_pct == null ? "—" : `${Number(entry.revenue_churn_pct).toFixed(1)}%`}</TableCell>
                             <TableCell>
                               <button onClick={() => removeMonthly(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                                 <Trash2 className="w-3.5 h-3.5" />

@@ -276,27 +276,45 @@ export type Database = {
       }
       monthly_revenue: {
         Row: {
+          churned_mrr: number | null
+          contraction_mrr: number | null
           created_at: string
+          ending_mrr: number | null
+          expansion_mrr: number | null
           id: string
-          month: string
-          new_revenue: number
-          revenue_churn: number
+          includes_declines: boolean
+          month_start: string
+          new_mrr: number | null
+          revenue_churn_pct: number | null
+          starting_mrr: number | null
           updated_at: string
         }
         Insert: {
+          churned_mrr?: number | null
+          contraction_mrr?: number | null
           created_at?: string
+          ending_mrr?: number | null
+          expansion_mrr?: number | null
           id?: string
-          month: string
-          new_revenue?: number
-          revenue_churn?: number
+          includes_declines?: boolean
+          month_start: string
+          new_mrr?: number | null
+          revenue_churn_pct?: number | null
+          starting_mrr?: number | null
           updated_at?: string
         }
         Update: {
+          churned_mrr?: number | null
+          contraction_mrr?: number | null
           created_at?: string
+          ending_mrr?: number | null
+          expansion_mrr?: number | null
           id?: string
-          month?: string
-          new_revenue?: number
-          revenue_churn?: number
+          includes_declines?: boolean
+          month_start?: string
+          new_mrr?: number | null
+          revenue_churn_pct?: number | null
+          starting_mrr?: number | null
           updated_at?: string
         }
         Relationships: []
