@@ -28,9 +28,15 @@ interface DailyEntry {
 
 interface MonthlyEntry {
   id?: string;
-  month: string;
-  new_revenue: number;
-  revenue_churn: number;
+  month_start: string;          // YYYY-MM-01
+  starting_mrr: number | null;
+  new_mrr: number | null;
+  expansion_mrr: number | null;
+  contraction_mrr: number | null;
+  churned_mrr: number | null;
+  ending_mrr: number | null;
+  revenue_churn_pct: number | null;
+  includes_declines: boolean;
 }
 
 interface AcquisitionEntry {
@@ -69,7 +75,17 @@ const DAILY_FIELDS: { key: keyof Omit<DailyEntry, "date" | "id">; label: string;
 ];
 
 const EMPTY_DAILY: DailyEntry = { date: todayStr(), mrr: 0, members: 0, about_page_traffic: 0, discovery_rank: 0, profile_activity: 0, group_activity: 0 };
-const EMPTY_MONTHLY: MonthlyEntry = { month: "", new_revenue: 0, revenue_churn: 0 };
+const EMPTY_MONTHLY: MonthlyEntry = {
+  month_start: "",
+  starting_mrr: null,
+  new_mrr: null,
+  expansion_mrr: null,
+  contraction_mrr: null,
+  churned_mrr: null,
+  ending_mrr: null,
+  revenue_churn_pct: null,
+  includes_declines: true,
+};
 const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0, organic_source: "" };
 
 interface ChurnEntry {
