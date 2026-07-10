@@ -251,7 +251,8 @@ export function DataEntry() {
 
   // --- Monthly handlers ---
   const NUMERIC_MONTHLY_FIELDS = new Set<keyof MonthlyEntry>([
-    "starting_mrr", "new_mrr", "expansion_mrr", "contraction_mrr", "churned_mrr", "ending_mrr", "revenue_churn_pct",
+    "starting_mrr", "new_mrr", "expansion_mrr", "reactivation_mrr", "contraction_mrr",
+    "churned_mrr", "ending_mrr", "revenue_churn_pct", "mrr_retention_pct_reported",
   ]);
 
   const updateMonthly = (field: keyof MonthlyEntry, value: string | boolean) => {
@@ -289,10 +290,12 @@ export function DataEntry() {
       starting_mrr: monthlyDraft.starting_mrr,
       new_mrr: monthlyDraft.new_mrr,
       expansion_mrr: monthlyDraft.expansion_mrr,
+      reactivation_mrr: monthlyDraft.reactivation_mrr,
       contraction_mrr: monthlyDraft.contraction_mrr,
       churned_mrr: monthlyDraft.churned_mrr,
       ending_mrr: monthlyDraft.ending_mrr,
       revenue_churn_pct: monthlyDraft.revenue_churn_pct,
+      mrr_retention_pct_reported: monthlyDraft.mrr_retention_pct_reported,
       includes_declines: monthlyDraft.includes_declines,
     };
     const { error } = await supabase
@@ -324,9 +327,15 @@ export function DataEntry() {
   const monthlyWaterfallDiff = (() => {
     const d = monthlyDraft;
     if (d.starting_mrr == null || d.ending_mrr == null) return null;
-    const expected = (d.starting_mrr || 0) + (d.new_mrr || 0) + (d.expansion_mrr || 0) - (d.contraction_mrr || 0) - (d.churned_mrr || 0);
+    const expected =
+      (d.starting_mrr || 0) +
+      (d.new_mrr || 0) +
+      (d.expansion_mrr || 0) +
+      (d.reactivation_mrr || 0) -
+      (d.contraction_mrr || 0) -
+      (d.churned_mrr || 0);
     const diff = expected - d.ending_mrr;
-    return Math.abs(diff) > 1 ? diff : null;
+    return Math.abs(diff) > 2 ? diff : null;
   })();
 
   const monthlyChurnCrossDiff = (() => {
@@ -335,6 +344,17 @@ export function DataEntry() {
     const impliedPct = (d.churned_mrr / d.starting_mrr) * 100;
     const gap = impliedPct - d.revenue_churn_pct;
     return Math.abs(gap) > 1 ? { impliedPct, entered: d.revenue_churn_pct } : null;
+  })();
+
+  const monthlyRetentionCrossDiff = (() => {
+    const d = monthlyDraft;
+    if (!d.starting_mrr || d.mrr_retention_pct_reported == null) return null;
+    const computed =
+      ((d.starting_mrr - (d.churned_mrr || 0) - (d.contraction_mrr || 0) +
+        (d.expansion_mrr || 0) + (d.reactivation_mrr || 0)) /
+        d.starting_mrr) * 100;
+    const gap = computed - d.mrr_retention_pct_reported;
+    return Math.abs(gap) > 2 ? { computedPct: computed, reported: d.mrr_retention_pct_reported } : null;
   })();
 
   const monthlyDailyMrrDiff = (() => {
