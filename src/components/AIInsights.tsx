@@ -134,13 +134,17 @@ export function AIInsights() {
   }, [messages, scrollToBottom]);
 
   const fetchDataPayload = async () => {
-    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, { data: churnEvents }, { data: skoolMembers }, { data: ceoNotes }, { data: recentConvs }] = await Promise.all([
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const [{ data: dailyMetrics }, { data: monthlyRevenue }, { data: acquisitionData }, { data: churnEvents }, { data: skoolMembers }, { data: ceoNotes }, { data: workshops }, { data: funnelDaily }, { data: trialCohorts }, { data: recentConvs }] = await Promise.all([
       supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("monthly_revenue").select("*").order("month_start", { ascending: false }).limit(12),
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).limit(60),
       supabase.from("churn_events").select("*").order("date", { ascending: false }).limit(200),
       (supabase.from as any)("skool_members").select("*").order("joined_date", { ascending: false }).limit(500),
       supabase.from("ceo_notes").select("*").order("date", { ascending: false }).limit(30),
+      supabase.from("workshops").select("*").order("workshop_date", { ascending: false }),
+      supabase.from("funnel_daily").select("*").gte("date", ninetyDaysAgo).order("date", { ascending: false }),
+      supabase.from("trial_cohorts").select("*").order("trial_start_date", { ascending: false }),
       supabase.from("ai_conversations").select("id, title, messages, created_at").order("updated_at", { ascending: false }).limit(3),
     ]);
 
@@ -178,6 +182,9 @@ export function AIInsights() {
       churnEvents,
       skoolMembers,
       ceoNotes,
+      workshops,
+      funnelDaily,
+      trialCohorts,
       recentConversations,
     };
     setDataPayload(payload);

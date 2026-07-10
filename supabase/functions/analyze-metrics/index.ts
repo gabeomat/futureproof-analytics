@@ -29,13 +29,27 @@ Founder's current strategic posture (factor this in, but price increases ARE on 
 
 You CAN recommend further raising prices on the current $37/$57/$400 tiers (or restructuring them) when the data clearly supports it — strong demand signals, low price-sensitivity churn, healthy conversion, etc. Just be specific about the trigger conditions and expected impact, and don't repeat the same pricing recommendation across sessions if it's already been considered. Prefer recommendations that work with the current structure (top-tier conversion, upsell paths, retention for legacy members, positioning) unless the data genuinely warrants a tier change.
 
+**Business model context — this is a two-stage funnel, not just a subscription:**
+1. FRONT END: Paid ads → Workshop registration (usually $27 ticket, currently testing $0 for the 2026-07-11 cohort) → live workshop.
+2. BACK END: Workshop attendees are pitched the Intensive ($3000) and/or Futureproof subscription ($37/mo, $57/mo, $400/yr). Subscription revenue lands in monthly_revenue / daily_metrics; Intensive revenue is one-time and lives in funnel_daily / workshops.
+Judge ad spend ROAS on TOTAL back-end revenue (Intensive + Futureproof LTV), never on ticket revenue alone.
+
+**MRR waterfall (monthly_revenue table):**
+Each row is one month keyed by month_start. Columns: starting_mrr, new_mrr, expansion_mrr, reactivation_mrr, contraction_mrr, churned_mrr, ending_mrr, revenue_churn_pct, mrr_retention_pct_reported, includes_declines. Use these to decompose growth — don't just look at ending_mrr deltas. Flag when contraction + churn exceed new + expansion.
+
 When giving your initial analysis, structure your response with these sections using markdown:
 
 ## 📊 MRR Trajectory Analysis
-Assess growth rate, sustainability, and momentum. Reference specific month-over-month changes.
+Assess growth rate, sustainability, and momentum. Decompose the last 3 months using the MRR waterfall (new vs expansion vs churn vs contraction). Reference specific month-over-month changes.
+
+## 🎪 Workshop Funnel Performance
+For each recent workshop, report: registrations (paid vs organic), CPA, intensive conversion rate + revenue, futureproof conversion by tier, and blended ROAS on back-end revenue. Compare workshops side-by-side to identify what's working. For the 2026-07-11 free-ticket experiment, explicitly compare its funnel conversion rates to prior paid-ticket workshops.
+
+## 🎟️ Trial Cohort Health
+Report Day-7 conversion and Day-30 retention using ONLY matured cohorts. State how many cohorts are still in-flight. If nothing has matured yet, say so — don't invent a rate.
 
 ## 🔄 Churn Deep Dive
-Evaluate revenue churn rate vs. industry benchmarks (typical SaaS: 5-7%, community: 8-12%). Identify patterns and root causes. You have access to individual churn event records — analyze churn by price tier, tenure (time from joined_date to churn date), and look for cohort patterns. Flag if certain tiers or join cohorts churn faster than others.
+Evaluate revenue churn rate vs. industry benchmarks (typical SaaS: 5-7%, community: 8-12%). Analyze churn by price tier, tenure (joined_date → churn date), and cohort. Flag if certain tiers or join cohorts churn faster than others.
 
 ## 💰 Pricing Strategy Recommendation
 Should they raise prices, keep them, or restructure tiers? Provide SPECIFIC numbers and reasoning.
@@ -44,10 +58,10 @@ Should they raise prices, keep them, or restructure tiers? Provide SPECIFIC numb
 How to handle grandfathered members on lower pricing. Recommend specific tactics with timelines.
 
 ## 📈 LTV & Unit Economics
-Assess LTV/CAC ratio health. Is ad spend efficient? What's the payback period? If Skool member data is available, analyze the active member base composition, join date distribution, and engagement tiers.
+Assess LTV/CAC ratio health across BOTH acquisition paths (direct-to-Skool via daily_acquisitions, and workshop funnel via funnel_daily). Is ad spend efficient per path? What's the payback period? Analyze active member composition, join date distribution, and engagement tiers when Skool data is available.
 
 ## 🎯 90-Day Action Plan
-Provide 5-7 specific, prioritized actions with expected impact on MRR. If CEO daily notes are available, factor in the founder's current bottlenecks and focus areas when prioritizing — recommendations that address active bottlenecks should rank higher. Reference recent wins to reinforce what's working.
+Provide 5-7 specific, prioritized actions with expected impact on MRR and back-end revenue. CEO daily notes are ground truth for the founder's current bottlenecks, wins, and focus — recommendations that unblock an active bottleneck or amplify a recent win should rank higher. Cite the specific note date when you reference one.
 
 For follow-up questions, respond naturally and conversationally while still being data-driven and specific. Reference the data you have whenever relevant.
 
@@ -67,7 +81,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, ceoNotes, messages, recentConversations } = body;
+    const { snapshot, historicalRevenue, churnData, monthlyMembers, annualMembers, dailyMetrics, monthlyRevenue, acquisitionData, churnEvents, skoolMembers, ceoNotes, workshops, funnelDaily, trialCohorts, messages, recentConversations } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -109,9 +123,22 @@ ${JSON.stringify(churnEvents || [], null, 2)}
 **Current Skool Members (from latest member export):**
 ${JSON.stringify(skoolMembers || [], null, 2)}
 
-**CEO Daily Notes (founder's wins, bottlenecks, focus areas, and context):**
+**CEO Daily Notes (founder's wins, bottlenecks, focus areas, and context — treat as ground-truth qualitative signal alongside the quantitative data):**
 Fields: date, biggest_win, biggest_bottleneck, todays_focus, notes (optional free-text context)
-${JSON.stringify(ceoNotes || [], null, 2)}`;
+${JSON.stringify(ceoNotes || [], null, 2)}
+
+**Workshops (front-end funnel; all past and upcoming workshops):**
+Fields include workshop_date, ticket_price, intensive_price ($3000 back-end offer), futureproof tiers ($37/mo, $57/mo, $400/yr), plus totals. Note the 2026-07-11 workshop is intentionally FREE ($0 ticket) as an acquisition experiment — evaluate its ROAS on Intensive + Futureproof back-end revenue only.
+${JSON.stringify(workshops || [], null, 2)}
+
+**Funnel Daily (last ~90 days of workshop funnel activity — registrations, ad spend, intensive sales, futureproof signups by tier):**
+Use this to compute per-workshop CPA, ROAS, and paid-vs-organic conversion. Group rows by workshop_id when comparing workshops.
+${JSON.stringify(funnelDaily || [], null, 2)}
+
+**Trial Cohorts (Futureproof trial performance):**
+Fields: trial_start_date, trial_starts, day7_paid, day30_still_paid, ad_spend_attributed, first_payment_revenue.
+CRITICAL: A cohort only counts toward Day-7 conversion once trial_start_date + 7 days <= today; Day-30 similarly. Never include in-flight cohorts in the denominator. If no cohort has matured, return null, not 0.
+${JSON.stringify(trialCohorts || [], null, 2)}`;
 
     // Inject recent conversation context (replaces old strategy_notes)
     if (recentConversations && recentConversations.length > 0) {
