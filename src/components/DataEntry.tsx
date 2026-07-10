@@ -535,7 +535,14 @@ export function DataEntry() {
         let realDateCount = 0;
         let estimatedCount = 0;
         let clampedCount = 0;
+        let rejoinCount = 0;
         const seenInBatch = new Set<string>();
+
+        const monthsBetween = (fromIso: string, toIso: string): number => {
+          const a = new Date(fromIso + "T00:00:00Z").getTime();
+          const b = new Date(toIso + "T00:00:00Z").getTime();
+          return (b - a) / (1000 * 60 * 60 * 24 * 30.4375);
+        };
 
         for (const r of rows) {
           if (r.length < 2) continue;
@@ -557,6 +564,17 @@ export function DataEntry() {
           const joinedDate = joinedDateIdx >= 0 ? parseDate(r[joinedDateIdx]) : null;
           const intervalRaw = intervalIdx >= 0 ? r[intervalIdx].toLowerCase() : "";
           const recurring_interval = intervalRaw.startsWith("year") || intervalRaw === "annual" ? "year" : "month";
+
+          // Rejoin suspect: LTV implies more months of tenure than actually elapsed since joined_date.
+          let ltv_exceeds_tenure = false;
+          if (joinedDate && price > 0) {
+            const impliedMonths = recurring_interval === "year" ? (ltv / price) * 12 : (ltv / price);
+            const actualMonths = monthsBetween(joinedDate, importDate);
+            if (impliedMonths > actualMonths + 0.6) {
+              ltv_exceeds_tenure = true;
+              rejoinCount++;
+            }
+          }
 
           const explicitChurn = churnDateIdx >= 0 ? parseDate(r[churnDateIdx]) : null;
           let churnDate: string;
@@ -599,6 +617,7 @@ export function DataEntry() {
             recurring_interval,
             churn_date_estimated: estimated,
             churn_date_clamped: clamped,
+            ltv_exceeds_tenure,
             notes: "",
           });
           seenInBatch.add(emailKey);
@@ -621,8 +640,9 @@ export function DataEntry() {
         toast({
           title: "Churn CSV imported",
           description:
-            `${added} added (${realDateCount} real dates, ${estimatedCount} estimated, ${clampedCount} clamped). ` +
-            `Skipped: ${skippedDuplicate} existing, ${skippedFree} free, ${skippedNoEmail} no email.`,
+            `${added} inserted · ${skippedDuplicate} dup · ${skippedFree} free · ${skippedNoEmail} no email · ` +
+            `${realDateCount} real / ${estimatedCount} estimated / ${clampedCount} clamped · ` +
+            `${rejoinCount} rows flagged as probable rejoins — their tenure estimates are unreliable.`,
         });
         await loadChurnEvents();
       } catch (err) {

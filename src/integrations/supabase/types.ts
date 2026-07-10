@@ -83,6 +83,7 @@ export type Database = {
           joined_date: string | null
           last_name: string | null
           ltv: number
+          ltv_exceeds_tenure: boolean
           notes: string | null
           price_point: number
           recurring_interval: string
@@ -99,6 +100,7 @@ export type Database = {
           joined_date?: string | null
           last_name?: string | null
           ltv?: number
+          ltv_exceeds_tenure?: boolean
           notes?: string | null
           price_point: number
           recurring_interval?: string
@@ -115,6 +117,7 @@ export type Database = {
           joined_date?: string | null
           last_name?: string | null
           ltv?: number
+          ltv_exceeds_tenure?: boolean
           notes?: string | null
           price_point?: number
           recurring_interval?: string
