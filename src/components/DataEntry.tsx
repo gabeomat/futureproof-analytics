@@ -193,11 +193,11 @@ export function DataEntry() {
     const { data, error } = await supabase
       .from("monthly_revenue")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("month_start", { ascending: false });
     if (error) {
       toast({ title: "Failed to load monthly data", description: error.message, variant: "destructive" });
     } else {
-      setMonthlyEntries(data || []);
+      setMonthlyEntries((data || []) as MonthlyEntry[]);
     }
     setMonthlyLoading(false);
   };
@@ -246,26 +246,54 @@ export function DataEntry() {
   };
 
   // --- Monthly handlers ---
-  const updateMonthly = (field: keyof MonthlyEntry, value: string) => {
-    if (field === "month") {
-      setMonthlyDraft((d) => ({ ...d, month: value }));
-    } else if (field !== "id") {
-      const num = value === "" ? 0 : Number(value);
-      if (value !== "" && isNaN(num)) return;
+  const NUMERIC_MONTHLY_FIELDS = new Set<keyof MonthlyEntry>([
+    "starting_mrr", "new_mrr", "expansion_mrr", "contraction_mrr", "churned_mrr", "ending_mrr", "revenue_churn_pct",
+  ]);
+
+  const updateMonthly = (field: keyof MonthlyEntry, value: string | boolean) => {
+    if (field === "month_start" && typeof value === "string") {
+      // value from <input type="month"> is "YYYY-MM"; store as first-of-month date.
+      const monthStart = value ? `${value}-01` : "";
+      setMonthlyDraft((d) => {
+        const next = { ...d, month_start: monthStart };
+        // Auto-fill starting_mrr from prior month's ending_mrr (editable).
+        if (monthStart && (d.starting_mrr === null || d.starting_mrr === 0)) {
+          const priorEnd = [...monthlyEntries]
+            .filter((e) => e.month_start < monthStart && e.ending_mrr != null)
+            .sort((a, b) => b.month_start.localeCompare(a.month_start))[0]?.ending_mrr;
+          if (priorEnd != null) next.starting_mrr = Number(priorEnd);
+        }
+        return next;
+      });
+    } else if (field === "includes_declines" && typeof value === "boolean") {
+      setMonthlyDraft((d) => ({ ...d, includes_declines: value }));
+    } else if (NUMERIC_MONTHLY_FIELDS.has(field) && typeof value === "string") {
+      const num = value === "" ? null : Number(value);
+      if (value !== "" && isNaN(num as number)) return;
       setMonthlyDraft((d) => ({ ...d, [field]: num }));
     }
   };
 
   const addMonthly = async () => {
-    if (!monthlyDraft.month.trim()) {
-      toast({ title: "Month required", description: "e.g. 'Apr 2026'", variant: "destructive" });
+    if (!monthlyDraft.month_start) {
+      toast({ title: "Month required", variant: "destructive" });
       return;
     }
     setMonthlySaving(true);
-    const { month, new_revenue, revenue_churn } = monthlyDraft;
+    const payload = {
+      month_start: monthlyDraft.month_start,
+      starting_mrr: monthlyDraft.starting_mrr,
+      new_mrr: monthlyDraft.new_mrr,
+      expansion_mrr: monthlyDraft.expansion_mrr,
+      contraction_mrr: monthlyDraft.contraction_mrr,
+      churned_mrr: monthlyDraft.churned_mrr,
+      ending_mrr: monthlyDraft.ending_mrr,
+      revenue_churn_pct: monthlyDraft.revenue_churn_pct,
+      includes_declines: monthlyDraft.includes_declines,
+    };
     const { error } = await supabase
       .from("monthly_revenue")
-      .upsert({ month, new_revenue, revenue_churn }, { onConflict: "month" });
+      .upsert(payload, { onConflict: "month_start" });
 
     if (error) {
       toast({ title: "Failed to save", description: error.message, variant: "destructive" });
@@ -287,6 +315,37 @@ export function DataEntry() {
       setMonthlyEntries((prev) => prev.filter((e) => e.id !== entry.id));
     }
   };
+
+  // --- Monthly derived validation (inline warnings, non-blocking) ---
+  const monthlyWaterfallDiff = (() => {
+    const d = monthlyDraft;
+    if (d.starting_mrr == null || d.ending_mrr == null) return null;
+    const expected = (d.starting_mrr || 0) + (d.new_mrr || 0) + (d.expansion_mrr || 0) - (d.contraction_mrr || 0) - (d.churned_mrr || 0);
+    const diff = expected - d.ending_mrr;
+    return Math.abs(diff) > 1 ? diff : null;
+  })();
+
+  const monthlyChurnCrossDiff = (() => {
+    const d = monthlyDraft;
+    if (!d.starting_mrr || d.churned_mrr == null || d.revenue_churn_pct == null) return null;
+    const impliedPct = (d.churned_mrr / d.starting_mrr) * 100;
+    const gap = impliedPct - d.revenue_churn_pct;
+    return Math.abs(gap) > 1 ? { impliedPct, entered: d.revenue_churn_pct } : null;
+  })();
+
+  const monthlyDailyMrrDiff = (() => {
+    const d = monthlyDraft;
+    if (!d.month_start || d.ending_mrr == null) return null;
+    const monthPrefix = d.month_start.slice(0, 7); // YYYY-MM
+    const inMonth = dailyEntries
+      .filter((e) => e.date.startsWith(monthPrefix))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    if (inMonth.length === 0) return null;
+    const latest = Number(inMonth[0].mrr);
+    const diff = d.ending_mrr - latest;
+    return Math.abs(diff) > 50 ? { diff, latest } : null;
+  })();
+
 
   // --- Acquisition handlers ---
   const loadAcquisitions = async () => {
