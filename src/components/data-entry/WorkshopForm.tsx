@@ -94,7 +94,7 @@ export function WorkshopForm() {
     setSaving(true);
     const payload = {
       attended: draft.attended,
-      total_registrations: draft.total_registrations ?? 0,
+      
       meta_attributed_registrations: draft.meta_attributed_registrations ?? 0,
       intensive_applications: draft.intensive_applications ?? 0,
       intensive_declined: draft.intensive_declined ?? 0,
