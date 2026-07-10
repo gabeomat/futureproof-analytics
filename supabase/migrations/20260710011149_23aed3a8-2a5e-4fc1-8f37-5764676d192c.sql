@@ -1,0 +1,1 @@
+ALTER TABLE public.churn_events ADD COLUMN IF NOT EXISTS ltv_exceeds_tenure BOOLEAN NOT NULL DEFAULT false;
