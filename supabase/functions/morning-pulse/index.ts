@@ -55,6 +55,17 @@ Deno.serve(async (req) => {
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     const threeDaysAgoStr = threeDaysAgo.toISOString().split("T")[0];
 
+    // Optional ?churn_window=N (days). Default 90. Clamp to [1, 3650].
+    const url = new URL(req.url);
+    const churnWindowRaw = url.searchParams.get("churn_window");
+    const churnWindowParsed = churnWindowRaw ? parseInt(churnWindowRaw, 10) : 90;
+    const churnWindowDays = Number.isFinite(churnWindowParsed)
+      ? Math.min(3650, Math.max(1, churnWindowParsed))
+      : 90;
+    const churnWindowStart = new Date();
+    churnWindowStart.setDate(churnWindowStart.getDate() - churnWindowDays);
+    const churnWindowStartStr = churnWindowStart.toISOString().split("T")[0];
+
     const [
       ceoNotes,
       dailyMetrics,
@@ -68,12 +79,13 @@ Deno.serve(async (req) => {
       funnelDailyRes,
     ] = await Promise.all([
       supabase.from("ceo_notes").select("*").order("date", { ascending: false }),
-      supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(3),
+      supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
       supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr),
       supabase.from("monthly_revenue").select("*").order("month", { ascending: false }),
-      supabase.from("churn_events").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr),
-      supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(1),
-      supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(1),
+      // Include rows within the churn window OR future-dated (prepaid annual/quarterly renewal cliffs).
+      supabase.from("churn_events").select("*").order("date", { ascending: false }).or(`date.gte.${churnWindowStartStr},date.gt.${todayStr}`),
+      supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(5),
+      supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(3),
       supabase
         .from("tasks")
         .select("label, category, date, is_completed, is_default, sort_order, weight")
