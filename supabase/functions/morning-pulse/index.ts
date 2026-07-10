@@ -261,6 +261,47 @@ Deno.serve(async (req) => {
     const directSkoolRecent = dailyAcquisitionsList.filter((r: any) => r.date >= threeDaysAgoStr);
 
     return new Response(JSON.stringify({
+      _meta: {
+        schema_version: "2026-07-10",
+        tables_exposed: [
+          "ceo_notes", "daily_metrics", "monthly_revenue", "churn_events",
+          "trial_cohorts", "strategy_notes", "ai_conversations", "tasks",
+          "workshops", "funnel_daily",
+        ],
+        rows_returned: {
+          ceo_notes: (ceoNotesData ?? []).length,
+          daily_metrics: (dailyMetricsData ?? []).length,
+          monthly_revenue: (monthlyRevenueData ?? []).length,
+          churn_events: (churnEventsData ?? []).length,
+          trial_cohorts: trialCohorts.length,
+          strategy_notes: (strategyNotesData ?? []).length,
+          ai_conversations: (aiConversationsData ?? []).length,
+          tasks: (tasksData ?? []).length,
+          workshops: (workshopsData ?? []).length,
+          funnel_daily: (funnelDailyData ?? []).length,
+        },
+        rows_available: {
+          ceo_notes: ceoNotesCount,
+          daily_metrics: dailyMetricsCount,
+          daily_acquisitions: dailyAcqCount,
+          monthly_revenue: monthlyRevCount,
+          churn_events: churnEventsCount,
+          strategy_notes: strategyNotesCount,
+          ai_conversations: aiConvCount,
+          tasks: tasksCount,
+          workshops: workshopsCount,
+          funnel_daily: funnelDailyCount,
+          trial_cohorts: trialCohortsCount,
+        },
+        limits_applied: {
+          daily_metrics: 30,
+          daily_acquisitions: "7d",
+          churn_events: `${churnWindowDays}d + all future-dated`,
+          strategy_notes: 5,
+          ai_conversations: 3,
+          tasks: 30,
+        },
+      },
       pulled_at: new Date().toISOString(),
       ceo_notes: ceoNotesData,
       daily_metrics: dailyMetricsData,
@@ -280,6 +321,44 @@ Deno.serve(async (req) => {
         active_workshop: activeWorkshop
           ? { ...activeWorkshop, status: activeWorkshopStatus }
           : null,
+        all_workshops: workshops.map((w: any) => {
+          const rows = funnelDaily.filter((r: any) => r.workshop_id === w.id);
+          const t = rows.reduce(
+            (a: any, r: any) => ({
+              ad_spend: a.ad_spend + Number(r.ad_spend),
+              regs_paid: a.regs_paid + r.registrations_paid,
+              regs_org: a.regs_org + r.registrations_organic,
+              workshop_rev: a.workshop_rev + Number(r.workshop_revenue),
+              intensive_rev: a.intensive_rev + Number(r.intensive_revenue),
+              fp_rev: a.fp_rev + Number(r.futureproof_revenue),
+              fp_t27: a.fp_t27 + r.futureproof_t27,
+              fp_t47: a.fp_t47 + r.futureproof_t47,
+              fp_t333: a.fp_t333 + r.futureproof_t333,
+            }),
+            { ad_spend: 0, regs_paid: 0, regs_org: 0, workshop_rev: 0, intensive_rev: 0, fp_rev: 0, fp_t27: 0, fp_t47: 0, fp_t333: 0 },
+          );
+          const totalRegs = t.regs_paid + t.regs_org;
+          let status: "upcoming" | "live" | "closed";
+          if (w.workshop_date === todayStr) status = "live";
+          else if (w.workshop_date > todayStr) status = "upcoming";
+          else status = "closed";
+          return {
+            ...w,
+            status,
+            computed: {
+              total_registrations: totalRegs,
+              registrations_paid: t.regs_paid,
+              registrations_organic: t.regs_org,
+              total_ad_spend: t.ad_spend,
+              cpa_paid: t.regs_paid > 0 ? t.ad_spend / t.regs_paid : null,
+              cpa_blended: totalRegs > 0 ? t.ad_spend / totalRegs : null,
+              workshop_revenue: t.workshop_rev,
+              intensive_revenue: t.intensive_rev,
+              futureproof_revenue: t.fp_rev,
+              futureproof_signups_by_tier: { t27: t.fp_t27, t47: t.fp_t47, t333: t.fp_t333 },
+            },
+          };
+        }),
         active_workshop_recent_daily: activeWorkshopRecentDaily,
         active_workshop_totals: activeWorkshopTotals,
         today_all_funnels: todayAllFunnels,
