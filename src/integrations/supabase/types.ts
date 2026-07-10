@@ -284,7 +284,9 @@ export type Database = {
           id: string
           includes_declines: boolean
           month_start: string
+          mrr_retention_pct_reported: number | null
           new_mrr: number | null
+          reactivation_mrr: number | null
           revenue_churn_pct: number | null
           starting_mrr: number | null
           updated_at: string
@@ -298,7 +300,9 @@ export type Database = {
           id?: string
           includes_declines?: boolean
           month_start: string
+          mrr_retention_pct_reported?: number | null
           new_mrr?: number | null
+          reactivation_mrr?: number | null
           revenue_churn_pct?: number | null
           starting_mrr?: number | null
           updated_at?: string
@@ -312,7 +316,9 @@ export type Database = {
           id?: string
           includes_declines?: boolean
           month_start?: string
+          mrr_retention_pct_reported?: number | null
           new_mrr?: number | null
+          reactivation_mrr?: number | null
           revenue_churn_pct?: number | null
           starting_mrr?: number | null
           updated_at?: string
