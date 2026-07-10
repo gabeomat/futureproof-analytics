@@ -73,6 +73,7 @@ export type Database = {
       }
       churn_events: {
         Row: {
+          churn_date_clamped: boolean
           churn_date_estimated: boolean
           created_at: string
           date: string
@@ -88,6 +89,7 @@ export type Database = {
           tier: string | null
         }
         Insert: {
+          churn_date_clamped?: boolean
           churn_date_estimated?: boolean
           created_at?: string
           date?: string
@@ -103,6 +105,7 @@ export type Database = {
           tier?: string | null
         }
         Update: {
+          churn_date_clamped?: boolean
           churn_date_estimated?: boolean
           created_at?: string
           date?: string
