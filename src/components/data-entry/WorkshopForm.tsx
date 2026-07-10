@@ -227,8 +227,8 @@ export function WorkshopForm() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {numField("total_registrations", "Total Registrations")}
               {numField("meta_attributed_registrations", "Meta Attributed")}
+
               {numField("attended", "Attended (blank if unknown)")}
               {numField("intensive_applications", "Intensive Applications")}
               {numField("intensive_declined", "Intensive Declined")}
