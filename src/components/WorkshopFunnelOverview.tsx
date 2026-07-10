@@ -163,7 +163,8 @@ export function WorkshopFunnelOverview() {
                     </div>
                     <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Registrations</span>
-                      <span className="text-foreground text-right">{w.total_registrations} ({totals.regs_paid} paid + {totals.regs_org} organic from daily)</span>
+                      <span className="text-foreground text-right">{totalRegs} ({totals.regs_paid} paid + {totals.regs_org} organic from daily)</span>
+
                     </div>
                     <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">→ Attended</span>
