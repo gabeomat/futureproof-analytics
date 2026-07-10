@@ -257,6 +257,7 @@ Deno.serve(async (req) => {
         direct_skool_legacy_recent: directSkoolRecent.length > 0 ? directSkoolRecent : null,
         direct_skool_funnel_last_7d: funnelDaily.filter((r: any) => r.funnel === "direct_skool" && r.date >= sevenDaysAgoStr),
       },
+      trial_cohorts: trialCohortsSection,
       errors,
     }), {
       status: 200,
