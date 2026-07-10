@@ -132,8 +132,9 @@ export function WorkshopFunnelOverview() {
           const totalRegs = totals.regs_paid + totals.regs_org;
           const cpa = totals.regs_paid > 0 ? totals.ad_spend / totals.regs_paid : null;
           const blended = totalRegs > 0 ? totals.ad_spend / totalRegs : null;
-          const showRate = w.attended != null && w.total_registrations > 0
-            ? (w.attended / w.total_registrations) * 100 : null;
+          const showRate = w.attended != null && totalRegs > 0
+            ? (w.attended / totalRegs) * 100 : null;
+
           const totalRev = totals.workshop_rev + totals.intensive_rev + fp_rev;
           const roas = totals.ad_spend > 0 ? totalRev / totals.ad_spend : 0;
           const status = workshopStatus(w.workshop_date);
