@@ -176,14 +176,14 @@ Deno.serve(async (req) => {
       activeWorkshopStatus === "closed" && activeWorkshop && activeWorkshop.workshop_date < fourteenDaysAgoStr;
     const flagFlyingBlind = !!activeWorkshop && activeWorkshopRows.length === 0 && !isStaleClosed;
 
-    // Direct-to-Skool legacy: only surface if rows in last 3 days
-    const directSkoolRecent = (dailyAcquisitions.data ?? []).filter((r: any) => r.date >= threeDaysAgoStr);
+    const dailyAcquisitionsList = dailyAcquisitionsData ?? [];
+    const directSkoolRecent = dailyAcquisitionsList.filter((r: any) => r.date >= threeDaysAgoStr);
 
     return new Response(JSON.stringify({
       pulled_at: new Date().toISOString(),
-      ceo_notes: ceoNotes.data,
-      daily_metrics: dailyMetrics.data,
-      monthly_revenue: (monthlyRevenue.data ?? []).map((r: any) => {
+      ceo_notes: ceoNotesData,
+      daily_metrics: dailyMetricsData,
+      monthly_revenue: (monthlyRevenueData ?? []).map((r: any) => {
         const start = r.starting_mrr == null ? null : Number(r.starting_mrr);
         const exp = Number(r.expansion_mrr ?? 0);
         const contr = Number(r.contraction_mrr ?? 0);
@@ -191,11 +191,10 @@ Deno.serve(async (req) => {
         const nrr = start && start !== 0 ? (start + exp - contr - churn) / start : null;
         return { ...r, net_revenue_retention: nrr };
       }),
-      churn_events: churnEvents.data,
-      strategy_notes: strategyNotes.data,
-      ai_conversations: aiConversations.data,
-      tasks: tasksRes.data,
-      // Section 2: ad activity — workshop-funnel-first
+      churn_events: churnEventsData,
+      strategy_notes: strategyNotesData,
+      ai_conversations: aiConversationsData,
+      tasks: tasksData,
       ad_activity: {
         active_workshop: activeWorkshop
           ? { ...activeWorkshop, status: activeWorkshopStatus }
@@ -204,18 +203,19 @@ Deno.serve(async (req) => {
         active_workshop_totals: activeWorkshopTotals,
         today_all_funnels: todayAllFunnels,
         flag_flying_blind: flagFlyingBlind,
-        // Direct-to-Skool legacy: only present if there's recent (≤3d) activity
         direct_skool_legacy_recent: directSkoolRecent.length > 0 ? directSkoolRecent : null,
         direct_skool_funnel_last_7d: funnelDaily.filter((r: any) => r.funnel === "direct_skool" && r.date >= sevenDaysAgoStr),
       },
+      errors,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
