@@ -1,0 +1,2 @@
+ALTER TABLE public.churn_events ADD COLUMN IF NOT EXISTS churn_date_clamped BOOLEAN NOT NULL DEFAULT false;
+CREATE UNIQUE INDEX IF NOT EXISTS churn_events_email_unique ON public.churn_events (lower(email)) WHERE email IS NOT NULL AND email <> '';
