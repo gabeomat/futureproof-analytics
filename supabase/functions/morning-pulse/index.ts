@@ -66,50 +66,54 @@ Deno.serve(async (req) => {
     churnWindowStart.setDate(churnWindowStart.getDate() - churnWindowDays);
     const churnWindowStartStr = churnWindowStart.toISOString().split("T")[0];
 
+    const errors: Array<{ key: string; message: string }> = [];
+    const safe = async <T,>(key: string, run: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+      try {
+        const { data, error } = await run();
+        if (error) {
+          errors.push({ key, message: error.message });
+          return null;
+        }
+        return (data ?? null) as T | null;
+      } catch (e: any) {
+        errors.push({ key, message: e?.message ?? String(e) });
+        return null;
+      }
+    };
+
     const [
-      ceoNotes,
-      dailyMetrics,
-      dailyAcquisitions,
-      monthlyRevenue,
-      churnEvents,
-      strategyNotes,
-      aiConversations,
-      tasksRes,
-      workshopsRes,
-      funnelDailyRes,
+      ceoNotesData,
+      dailyMetricsData,
+      dailyAcquisitionsData,
+      monthlyRevenueData,
+      churnEventsData,
+      strategyNotesData,
+      aiConversationsData,
+      tasksData,
+      workshopsData,
+      funnelDailyData,
     ] = await Promise.all([
-      supabase.from("ceo_notes").select("*").order("date", { ascending: false }),
-      supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30),
-      supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr),
-      supabase.from("monthly_revenue").select("*").order("month_start", { ascending: false }),
-      // Include rows within the churn window OR future-dated (prepaid annual/quarterly renewal cliffs).
-      supabase.from("churn_events").select("*").order("date", { ascending: false }).or(`date.gte.${churnWindowStartStr},date.gt.${todayStr}`),
-      supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(5),
-      supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(3),
-      supabase
+      safe<any[]>("ceo_notes", () => supabase.from("ceo_notes").select("*").order("date", { ascending: false })),
+      safe<any[]>("daily_metrics", () => supabase.from("daily_metrics").select("*").order("date", { ascending: false }).limit(30)),
+      safe<any[]>("daily_acquisitions", () => supabase.from("daily_acquisitions").select("*").order("date", { ascending: false }).gte("date", sevenDaysAgoStr)),
+      safe<any[]>("monthly_revenue", () => supabase.from("monthly_revenue").select("*").order("month_start", { ascending: false })),
+      safe<any[]>("churn_events", () => supabase.from("churn_events").select("*").order("date", { ascending: false }).or(`date.gte.${churnWindowStartStr},date.gt.${todayStr}`)),
+      safe<any[]>("strategy_notes", () => supabase.from("strategy_notes").select("*").order("created_at", { ascending: false }).limit(5)),
+      safe<any[]>("ai_conversations", () => supabase.from("ai_conversations").select("*").order("updated_at", { ascending: false }).limit(3)),
+      safe<any[]>("tasks", () => supabase
         .from("tasks")
         .select("label, category, date, is_completed, is_default, sort_order, weight")
         .order("date", { ascending: false })
         .order("sort_order", { ascending: true })
-        .limit(30),
-      supabase.from("workshops").select("*").order("workshop_date", { ascending: false }),
-      supabase.from("funnel_daily").select("*").order("date", { ascending: false }),
+        .limit(30)),
+      safe<any[]>("workshops", () => supabase.from("workshops").select("*").order("workshop_date", { ascending: false })),
+      safe<any[]>("funnel_daily", () => supabase.from("funnel_daily").select("*").order("date", { ascending: false })),
     ]);
 
-    // Check for errors
-    const queries = { ceoNotes, dailyMetrics, dailyAcquisitions, monthlyRevenue, churnEvents, strategyNotes, aiConversations, tasksRes, workshopsRes, funnelDailyRes };
-    for (const [name, result] of Object.entries(queries)) {
-      if (result.error) {
-        return new Response(JSON.stringify({ error: `Failed to fetch ${name}: ${result.error.message}` }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
     // Build workshop activity section
-    const workshops = workshopsRes.data ?? [];
-    const funnelDaily = funnelDailyRes.data ?? [];
+    const workshops = workshopsData ?? [];
+    const funnelDaily = funnelDailyData ?? [];
+
 
     // Active workshop: smallest workshop_date >= today (upcoming), else most recently closed
     const upcoming = [...workshops]
