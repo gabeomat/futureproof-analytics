@@ -475,13 +475,33 @@ export function DataEntry() {
         const churnDateIdx = headers.findIndex((h) => h === "churndate" || h === "churn_date");
         const intervalIdx = headers.findIndex((h) => h === "recurring_interval" || h === "interval");
 
+        // TZ-safe date parser: accepts YYYY-MM-DD, M/D/YYYY, D/M/YYYY (ambiguous → US), and ISO timestamps.
         const parseDate = (s: string): string | null => {
           if (!s) return null;
           const t = s.trim();
           if (!t) return null;
-          const d = new Date(t);
-          if (isNaN(d.getTime())) return null;
-          return d.toISOString().slice(0, 10);
+          const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+          if (iso) {
+            const y = +iso[1], m = +iso[2], d = +iso[3];
+            if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+              return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            }
+          }
+          const slash = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+          if (slash) {
+            let [_, aStr, bStr, yStr] = slash;
+            let y = +yStr;
+            if (y < 100) y += 2000;
+            const a = +aStr, b = +bStr;
+            // Assume M/D/Y (US) — Skool exports use this.
+            const m = a, d = b;
+            if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+              return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            }
+          }
+          const dt = new Date(t);
+          if (isNaN(dt.getTime())) return null;
+          return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
         };
 
         const addMonths = (iso: string, months: number): string => {
@@ -491,11 +511,31 @@ export function DataEntry() {
         };
 
         const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
+        const importDate = todayStr();
 
-        let added = 0;
-        let updated = 0;
+        // Fetch existing emails once (add-only strategy).
+        const { data: existingRows, error: existingErr } = await supabase
+          .from("churn_events")
+          .select("email");
+        if (existingErr) {
+          toast({ title: "Import failed", description: existingErr.message, variant: "destructive" });
+          setChurnCsvImporting(false);
+          return;
+        }
+        const existingEmails = new Set(
+          (existingRows ?? [])
+            .map((r: any) => (r.email || "").toLowerCase().trim())
+            .filter(Boolean)
+        );
+
+        const toInsert: any[] = [];
         let skippedFree = 0;
         let skippedNoEmail = 0;
+        let skippedDuplicate = 0;
+        let realDateCount = 0;
+        let estimatedCount = 0;
+        let clampedCount = 0;
+        const seenInBatch = new Set<string>();
 
         for (const r of rows) {
           if (r.length < 2) continue;
@@ -508,6 +548,11 @@ export function DataEntry() {
 
           const email = (emailIdx >= 0 ? r[emailIdx] : "").trim();
           if (!email) { skippedNoEmail++; continue; }
+          const emailKey = email.toLowerCase();
+          if (existingEmails.has(emailKey) || seenInBatch.has(emailKey)) {
+            skippedDuplicate++;
+            continue;
+          }
 
           const joinedDate = joinedDateIdx >= 0 ? parseDate(r[joinedDateIdx]) : null;
           const intervalRaw = intervalIdx >= 0 ? r[intervalIdx].toLowerCase() : "";
@@ -516,20 +561,33 @@ export function DataEntry() {
           const explicitChurn = churnDateIdx >= 0 ? parseDate(r[churnDateIdx]) : null;
           let churnDate: string;
           let estimated: boolean;
+          let clamped = false;
           if (explicitChurn) {
             churnDate = explicitChurn;
             estimated = false;
-          } else if (joinedDate && price > 0) {
-            const monthsLived = Math.max(1, Math.round(ltv / price));
-            const monthsToAdd = recurring_interval === "year" ? monthsLived * 12 : monthsLived;
-            churnDate = addMonths(joinedDate, monthsToAdd);
-            estimated = true;
+            realDateCount++;
           } else {
-            churnDate = todayStr();
             estimated = true;
+            estimatedCount++;
+            let candidate: string;
+            if (joinedDate && price > 0) {
+              const monthsLived = Math.max(1, Math.round(ltv / price));
+              const monthsToAdd = recurring_interval === "year" ? monthsLived * 12 : monthsLived;
+              candidate = addMonths(joinedDate, monthsToAdd);
+            } else {
+              candidate = importDate;
+            }
+            // Clamp: a churned member cannot have a future churn date.
+            if (candidate > importDate) {
+              churnDate = importDate;
+              clamped = true;
+              clampedCount++;
+            } else {
+              churnDate = candidate;
+            }
           }
 
-          const payload = {
+          toInsert.push({
             date: churnDate,
             first_name: firstNameIdx >= 0 ? r[firstNameIdx] : "",
             last_name: lastNameIdx >= 0 ? r[lastNameIdx] : "",
@@ -540,44 +598,31 @@ export function DataEntry() {
             ltv,
             recurring_interval,
             churn_date_estimated: estimated,
+            churn_date_clamped: clamped,
             notes: "",
-          };
+          });
+          seenInBatch.add(emailKey);
+        }
 
-          // Dedupe by email (case-insensitive)
-          const { data: existing, error: lookupErr } = await supabase
-            .from("churn_events")
-            .select("id")
-            .ilike("email", email)
-            .maybeSingle();
-
-          if (lookupErr) {
-            toast({ title: "Import failed", description: lookupErr.message, variant: "destructive" });
+        // Batch insert.
+        let added = 0;
+        const BATCH = 500;
+        for (let i = 0; i < toInsert.length; i += BATCH) {
+          const chunk = toInsert.slice(i, i + BATCH);
+          const { error } = await supabase.from("churn_events").insert(chunk as any);
+          if (error) {
+            toast({ title: "Import failed", description: error.message, variant: "destructive" });
             setChurnCsvImporting(false);
             return;
           }
-
-          if (existing?.id) {
-            const { error } = await supabase.from("churn_events").update(payload as any).eq("id", existing.id);
-            if (error) {
-              toast({ title: "Import failed", description: error.message, variant: "destructive" });
-              setChurnCsvImporting(false);
-              return;
-            }
-            updated++;
-          } else {
-            const { error } = await supabase.from("churn_events").insert(payload as any);
-            if (error) {
-              toast({ title: "Import failed", description: error.message, variant: "destructive" });
-              setChurnCsvImporting(false);
-              return;
-            }
-            added++;
-          }
+          added += chunk.length;
         }
 
         toast({
           title: "Churn CSV imported",
-          description: `${added} added, ${updated} updated (rejoin), ${skippedFree} skipped (free)${skippedNoEmail ? `, ${skippedNoEmail} skipped (no email)` : ""}.`,
+          description:
+            `${added} added (${realDateCount} real dates, ${estimatedCount} estimated, ${clampedCount} clamped). ` +
+            `Skipped: ${skippedDuplicate} existing, ${skippedFree} free, ${skippedNoEmail} no email.`,
         });
         await loadChurnEvents();
       } catch (err) {
