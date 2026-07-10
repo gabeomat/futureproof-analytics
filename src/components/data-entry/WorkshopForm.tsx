@@ -34,7 +34,7 @@ const NEW_WORKSHOP = {
   title: "Create Your Living Workspace",
   registration_window_start: todayStr(),
   registration_window_end: todayStr(),
-  intensive_price: 1997,
+  intensive_price: 3000,
   intensive_waitlist_mode: true,
 };
 
