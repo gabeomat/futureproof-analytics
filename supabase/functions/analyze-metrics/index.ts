@@ -109,9 +109,22 @@ ${JSON.stringify(churnEvents || [], null, 2)}
 **Current Skool Members (from latest member export):**
 ${JSON.stringify(skoolMembers || [], null, 2)}
 
-**CEO Daily Notes (founder's wins, bottlenecks, focus areas, and context):**
+**CEO Daily Notes (founder's wins, bottlenecks, focus areas, and context — treat as ground-truth qualitative signal alongside the quantitative data):**
 Fields: date, biggest_win, biggest_bottleneck, todays_focus, notes (optional free-text context)
-${JSON.stringify(ceoNotes || [], null, 2)}`;
+${JSON.stringify(ceoNotes || [], null, 2)}
+
+**Workshops (front-end funnel; all past and upcoming workshops):**
+Fields include workshop_date, ticket_price, intensive_price ($3000 back-end offer), futureproof tiers ($37/mo, $57/mo, $400/yr), plus totals. Note the 2026-07-11 workshop is intentionally FREE ($0 ticket) as an acquisition experiment — evaluate its ROAS on Intensive + Futureproof back-end revenue only.
+${JSON.stringify(workshops || [], null, 2)}
+
+**Funnel Daily (last ~90 days of workshop funnel activity — registrations, ad spend, intensive sales, futureproof signups by tier):**
+Use this to compute per-workshop CPA, ROAS, and paid-vs-organic conversion. Group rows by workshop_id when comparing workshops.
+${JSON.stringify(funnelDaily || [], null, 2)}
+
+**Trial Cohorts (Futureproof trial performance):**
+Fields: trial_start_date, trial_starts, day7_paid, day30_still_paid, ad_spend_attributed, first_payment_revenue.
+CRITICAL: A cohort only counts toward Day-7 conversion once trial_start_date + 7 days <= today; Day-30 similarly. Never include in-flight cohorts in the denominator. If no cohort has matured, return null, not 0.
+${JSON.stringify(trialCohorts || [], null, 2)}`;
 
     // Inject recent conversation context (replaces old strategy_notes)
     if (recentConversations && recentConversations.length > 0) {
