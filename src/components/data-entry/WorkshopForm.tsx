@@ -20,7 +20,7 @@ type Workshop = {
   registration_window_end: string;
   intensive_price: number;
   intensive_waitlist_mode: boolean;
-  total_registrations: number;
+  
   meta_attributed_registrations: number;
   attended: number | null;
   intensive_applications: number;
