@@ -32,10 +32,12 @@ interface MonthlyEntry {
   starting_mrr: number | null;
   new_mrr: number | null;
   expansion_mrr: number | null;
+  reactivation_mrr: number | null;
   contraction_mrr: number | null;
   churned_mrr: number | null;
   ending_mrr: number | null;
   revenue_churn_pct: number | null;
+  mrr_retention_pct_reported: number | null;
   includes_declines: boolean;
 }
 
@@ -80,10 +82,12 @@ const EMPTY_MONTHLY: MonthlyEntry = {
   starting_mrr: null,
   new_mrr: null,
   expansion_mrr: null,
+  reactivation_mrr: null,
   contraction_mrr: null,
   churned_mrr: null,
   ending_mrr: null,
   revenue_churn_pct: null,
+  mrr_retention_pct_reported: null,
   includes_declines: true,
 };
 const EMPTY_ACQ: AcquisitionEntry = { date: todayStr(), ad_spend: 0, revenue: 0, ad_conv_27: 0, ad_conv_47: 0, ad_conv_333: 0, organic_27: 0, organic_47: 0, organic_333: 0, organic_source: "" };
