@@ -1085,37 +1085,86 @@ export function DataEntry() {
             <CardContent>
               {showMonthlyForm && (
                 <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Monthly Revenue Read (from Skool) — enter the waterfall Skool shows for the month.
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Month</label>
                       <Input
-                        value={monthlyDraft.month}
-                        onChange={(e) => updateMonthly("month", e.target.value)}
-                        placeholder="Apr 2026"
+                        type="month"
+                        value={monthlyDraft.month_start ? monthlyDraft.month_start.slice(0, 7) : ""}
+                        onChange={(e) => updateMonthly("month_start", e.target.value)}
                         className="h-8 text-xs bg-background"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">New Revenue ($)</label>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Starting MRR ($)</label>
                       <Input
                         type="number"
-                        value={monthlyDraft.new_revenue || ""}
-                        onChange={(e) => updateMonthly("new_revenue", e.target.value)}
-                        placeholder="1249"
+                        value={monthlyDraft.starting_mrr ?? ""}
+                        onChange={(e) => updateMonthly("starting_mrr", e.target.value)}
+                        placeholder="auto from prior month"
                         className="h-8 text-xs bg-background font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Revenue Churn ($)</label>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">New MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.new_mrr ?? ""} onChange={(e) => updateMonthly("new_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Expansion (upgrades) ($)</label>
+                      <Input type="number" value={monthlyDraft.expansion_mrr ?? ""} onChange={(e) => updateMonthly("expansion_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraction (downgrades) ($)</label>
+                      <Input type="number" value={monthlyDraft.contraction_mrr ?? ""} onChange={(e) => updateMonthly("contraction_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Churned MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.churned_mrr ?? ""} onChange={(e) => updateMonthly("churned_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Ending MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.ending_mrr ?? ""} onChange={(e) => updateMonthly("ending_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Revenue Churn % (from Skool)</label>
                       <Input
                         type="number"
-                        value={monthlyDraft.revenue_churn || ""}
-                        onChange={(e) => updateMonthly("revenue_churn", e.target.value)}
-                        placeholder="231"
+                        step="0.1"
+                        value={monthlyDraft.revenue_churn_pct ?? ""}
+                        onChange={(e) => updateMonthly("revenue_churn_pct", e.target.value)}
+                        placeholder="e.g. 14.3"
                         className="h-8 text-xs bg-background font-mono"
                       />
                     </div>
                   </div>
+                  <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={monthlyDraft.includes_declines}
+                      onChange={(e) => updateMonthly("includes_declines", e.target.checked)}
+                      className="w-4 h-4 rounded border-border"
+                    />
+                    Includes decline churns
+                  </label>
+
+                  {/* Inline validation — non-blocking */}
+                  {(monthlyWaterfallDiff !== null || monthlyChurnCrossDiff !== null || monthlyDailyMrrDiff !== null) && (
+                    <div className="space-y-1 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-300 font-mono">
+                      {monthlyWaterfallDiff !== null && (
+                        <div>Waterfall is off by {formatCurrency(Math.abs(monthlyWaterfallDiff))} — check your entries.</div>
+                      )}
+                      {monthlyChurnCrossDiff !== null && (
+                        <div>Skool says {monthlyChurnCrossDiff.entered.toFixed(1)}%, dollars imply {monthlyChurnCrossDiff.impliedPct.toFixed(1)}%. Both saved.</div>
+                      )}
+                      {monthlyDailyMrrDiff !== null && (
+                        <div>Ending MRR is {formatCurrency(Math.abs(monthlyDailyMrrDiff.diff))} off latest daily read ({formatCurrency(monthlyDailyMrrDiff.latest)}).</div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button size="sm" onClick={addMonthly} disabled={monthlySaving} className="text-xs">
                       {monthlySaving && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
@@ -1135,31 +1184,37 @@ export function DataEntry() {
                 <div className="text-center py-12 text-muted-foreground">
                   <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-40" />
                   <p className="text-sm">No monthly entries yet</p>
-                  <p className="text-xs mt-1">Track your new revenue and churn each month</p>
+                  <p className="text-xs mt-1">Track your MRR waterfall each month</p>
                 </div>
               ) : monthlyEntries.length > 0 && (
-                <div className="rounded-md border border-border overflow-hidden">
+                <div className="rounded-md border border-border overflow-hidden overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-secondary/50">
                         <TableHead className="text-[10px] font-mono">Month</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">New Revenue</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Revenue Churn</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Net</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Start</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">New</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Exp</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Contr</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Churned</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">End</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Churn %</TableHead>
                         <TableHead className="w-8"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {monthlyEntries.map((entry, i) => {
-                        const net = entry.new_revenue - entry.revenue_churn;
+                        const fmt = (v: number | null) => v == null ? "—" : formatCurrency(Number(v));
                         return (
                           <TableRow key={entry.id || i} className="group">
-                            <TableCell className="text-xs font-medium text-foreground">{entry.month}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-emerald-400">+{formatCurrency(entry.new_revenue)}</TableCell>
-                            <TableCell className="text-xs text-right font-mono text-red-400">-{formatCurrency(entry.revenue_churn)}</TableCell>
-                            <TableCell className={`text-xs text-right font-mono font-semibold ${net >= 0 ? "text-primary" : "text-red-400"}`}>
-                              {net >= 0 ? "+" : ""}{formatCurrency(net)}
-                            </TableCell>
+                            <TableCell className="text-xs font-medium text-foreground">{entry.month_start}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-muted-foreground">{fmt(entry.starting_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-emerald-400">{fmt(entry.new_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-emerald-300">{fmt(entry.expansion_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-amber-400">{fmt(entry.contraction_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-red-400">{fmt(entry.churned_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-foreground font-semibold">{fmt(entry.ending_mrr)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono text-primary">{entry.revenue_churn_pct == null ? "—" : `${Number(entry.revenue_churn_pct).toFixed(1)}%`}</TableCell>
                             <TableCell>
                               <button onClick={() => removeMonthly(entry)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                                 <Trash2 className="w-3.5 h-3.5" />
