@@ -182,6 +182,9 @@ export function AIInsights() {
       churnEvents,
       skoolMembers,
       ceoNotes,
+      workshops,
+      funnelDaily,
+      trialCohorts,
       recentConversations,
     };
     setDataPayload(payload);
