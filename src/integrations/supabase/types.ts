@@ -471,7 +471,6 @@ export type Database = {
           registration_window_end: string
           registration_window_start: string
           title: string
-          total_registrations: number
           updated_at: string
           workshop_date: string
         }
@@ -489,7 +488,6 @@ export type Database = {
           registration_window_end: string
           registration_window_start: string
           title?: string
-          total_registrations?: number
           updated_at?: string
           workshop_date: string
         }
@@ -507,7 +505,6 @@ export type Database = {
           registration_window_end?: string
           registration_window_start?: string
           title?: string
-          total_registrations?: number
           updated_at?: string
           workshop_date?: string
         }
