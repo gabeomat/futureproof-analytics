@@ -1141,6 +1141,10 @@ export function DataEntry() {
                       <Input type="number" value={monthlyDraft.expansion_mrr ?? ""} onChange={(e) => updateMonthly("expansion_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                     </div>
                     <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Reactivation MRR ($)</label>
+                      <Input type="number" value={monthlyDraft.reactivation_mrr ?? ""} onChange={(e) => updateMonthly("reactivation_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
+                    </div>
+                    <div>
                       <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraction (downgrades) ($)</label>
                       <Input type="number" value={monthlyDraft.contraction_mrr ?? ""} onChange={(e) => updateMonthly("contraction_mrr", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                     </div>
@@ -1160,6 +1164,17 @@ export function DataEntry() {
                         value={monthlyDraft.revenue_churn_pct ?? ""}
                         onChange={(e) => updateMonthly("revenue_churn_pct", e.target.value)}
                         placeholder="e.g. 14.3"
+                        className="h-8 text-xs bg-background font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">MRR Retention % (from Skool)</label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={monthlyDraft.mrr_retention_pct_reported ?? ""}
+                        onChange={(e) => updateMonthly("mrr_retention_pct_reported", e.target.value)}
+                        placeholder="e.g. 77"
                         className="h-8 text-xs bg-background font-mono"
                       />
                     </div>
