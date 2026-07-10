@@ -55,6 +55,17 @@ Deno.serve(async (req) => {
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     const threeDaysAgoStr = threeDaysAgo.toISOString().split("T")[0];
 
+    // Optional ?churn_window=N (days). Default 90. Clamp to [1, 3650].
+    const url = new URL(req.url);
+    const churnWindowRaw = url.searchParams.get("churn_window");
+    const churnWindowParsed = churnWindowRaw ? parseInt(churnWindowRaw, 10) : 90;
+    const churnWindowDays = Number.isFinite(churnWindowParsed)
+      ? Math.min(3650, Math.max(1, churnWindowParsed))
+      : 90;
+    const churnWindowStart = new Date();
+    churnWindowStart.setDate(churnWindowStart.getDate() - churnWindowDays);
+    const churnWindowStartStr = churnWindowStart.toISOString().split("T")[0];
+
     const [
       ceoNotes,
       dailyMetrics,
