@@ -112,6 +112,36 @@ Deno.serve(async (req) => {
       safe<any[]>("trial_cohorts", () => supabase.from("trial_cohorts").select("*").order("trial_start_date", { ascending: false })),
     ]);
 
+    // Row counts (available totals) for _meta.rows_available
+    const countSafe = async (key: string, q: any): Promise<number | null> => {
+      try {
+        const { count, error } = await q;
+        if (error) { errors.push({ key: `${key}_count`, message: error.message }); return null; }
+        return count ?? 0;
+      } catch (e: any) {
+        errors.push({ key: `${key}_count`, message: e?.message ?? String(e) });
+        return null;
+      }
+    };
+    const [
+      ceoNotesCount, dailyMetricsCount, dailyAcqCount, monthlyRevCount,
+      churnEventsCount, strategyNotesCount, aiConvCount, tasksCount,
+      workshopsCount, funnelDailyCount, trialCohortsCount,
+    ] = await Promise.all([
+      countSafe("ceo_notes", supabase.from("ceo_notes").select("*", { count: "exact", head: true })),
+      countSafe("daily_metrics", supabase.from("daily_metrics").select("*", { count: "exact", head: true })),
+      countSafe("daily_acquisitions", supabase.from("daily_acquisitions").select("*", { count: "exact", head: true })),
+      countSafe("monthly_revenue", supabase.from("monthly_revenue").select("*", { count: "exact", head: true })),
+      countSafe("churn_events", supabase.from("churn_events").select("*", { count: "exact", head: true })),
+      countSafe("strategy_notes", supabase.from("strategy_notes").select("*", { count: "exact", head: true })),
+      countSafe("ai_conversations", supabase.from("ai_conversations").select("*", { count: "exact", head: true })),
+      countSafe("tasks", supabase.from("tasks").select("*", { count: "exact", head: true })),
+      countSafe("workshops", supabase.from("workshops").select("*", { count: "exact", head: true })),
+      countSafe("funnel_daily", supabase.from("funnel_daily").select("*", { count: "exact", head: true })),
+      countSafe("trial_cohorts", supabase.from("trial_cohorts").select("*", { count: "exact", head: true })),
+    ]);
+
+
     // Trial cohorts aggregation (exclude immature cohorts from rates)
     const trialCohorts = trialCohortsData ?? [];
     const todayMs = new Date(todayStr + "T00:00:00Z").getTime();
