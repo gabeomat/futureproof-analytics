@@ -1437,7 +1437,10 @@ export function DataEntry() {
             const totalRevenue = acqEntries.reduce((s, e) => s + Number(e.revenue), 0);
             const totalAdConv = acqEntries.reduce((s, e) => s + e.ad_conv_27 + e.ad_conv_47 + e.ad_conv_333, 0);
             const avgCpa = totalAdConv > 0 ? totalSpend / totalAdConv : 0;
-            const adMrrAdded = acqEntries.reduce((s, e) => s + e.ad_conv_27 * 27 + e.ad_conv_47 * 47 + e.ad_conv_333 * (333 / 12), 0);
+            const adMrrAdded = acqEntries.reduce((s, e) => {
+              const p = tierPricesFor(e.date);
+              return s + e.ad_conv_27 * p.standard + e.ad_conv_47 * p.premium + e.ad_conv_333 * (p.annual / 12);
+            }, 0);
             const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
             return (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
