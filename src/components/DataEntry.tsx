@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Download, Upload, CalendarDays, TrendingUp, FileUp, Loader2, Megaphone, UserMinus, NotebookPen, Sparkles, BarChart3, Beaker } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/data";
+import { tierPricesFor } from "@/lib/pricing";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkshopForm } from "./data-entry/WorkshopForm";
@@ -1316,15 +1317,15 @@ export function DataEntry() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Ad Conversions</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Standard</label>
                         <Input type="number" min="0" value={acqDraft.ad_conv_27 || ""} onChange={(e) => updateAcq("ad_conv_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Premium</label>
                         <Input type="number" min="0" value={acqDraft.ad_conv_47 || ""} onChange={(e) => updateAcq("ad_conv_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">VIP</label>
                         <Input type="number" min="0" value={acqDraft.ad_conv_333 || ""} onChange={(e) => updateAcq("ad_conv_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                     </div>
@@ -1333,15 +1334,15 @@ export function DataEntry() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Organic Conversions</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Standard</label>
                         <Input type="number" min="0" value={acqDraft.organic_27 || ""} onChange={(e) => updateAcq("organic_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Premium</label>
                         <Input type="number" min="0" value={acqDraft.organic_47 || ""} onChange={(e) => updateAcq("organic_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">VIP</label>
                         <Input type="number" min="0" value={acqDraft.organic_333 || ""} onChange={(e) => updateAcq("organic_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                     </div>
@@ -1390,9 +1391,9 @@ export function DataEntry() {
                         <TableHead className="text-[10px] font-mono">Date</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad Spend</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Revenue</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Ad $27</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Ad $47</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Ad $333</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Standard</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Premium</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">VIP</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Organic</TableHead>
                         <TableHead className="text-[10px] font-mono">Source</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">CPA</TableHead>
@@ -1436,7 +1437,10 @@ export function DataEntry() {
             const totalRevenue = acqEntries.reduce((s, e) => s + Number(e.revenue), 0);
             const totalAdConv = acqEntries.reduce((s, e) => s + e.ad_conv_27 + e.ad_conv_47 + e.ad_conv_333, 0);
             const avgCpa = totalAdConv > 0 ? totalSpend / totalAdConv : 0;
-            const adMrrAdded = acqEntries.reduce((s, e) => s + e.ad_conv_27 * 27 + e.ad_conv_47 * 47 + e.ad_conv_333 * (333 / 12), 0);
+            const adMrrAdded = acqEntries.reduce((s, e) => {
+              const p = tierPricesFor(e.date);
+              return s + e.ad_conv_27 * p.standard + e.ad_conv_47 * p.premium + e.ad_conv_333 * (p.annual / 12);
+            }, 0);
             const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
             return (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
