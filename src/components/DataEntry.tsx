@@ -1317,15 +1317,15 @@ export function DataEntry() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Ad Conversions</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Standard</label>
                         <Input type="number" min="0" value={acqDraft.ad_conv_27 || ""} onChange={(e) => updateAcq("ad_conv_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Premium</label>
                         <Input type="number" min="0" value={acqDraft.ad_conv_47 || ""} onChange={(e) => updateAcq("ad_conv_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">VIP</label>
                         <Input type="number" min="0" value={acqDraft.ad_conv_333 || ""} onChange={(e) => updateAcq("ad_conv_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                     </div>
@@ -1334,15 +1334,15 @@ export function DataEntry() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Organic Conversions</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$27/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Standard</label>
                         <Input type="number" min="0" value={acqDraft.organic_27 || ""} onChange={(e) => updateAcq("organic_27", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$47/mo</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Premium</label>
                         <Input type="number" min="0" value={acqDraft.organic_47 || ""} onChange={(e) => updateAcq("organic_47", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">$333/yr</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">VIP</label>
                         <Input type="number" min="0" value={acqDraft.organic_333 || ""} onChange={(e) => updateAcq("organic_333", e.target.value)} placeholder="0" className="h-8 text-xs bg-background font-mono" />
                       </div>
                     </div>
