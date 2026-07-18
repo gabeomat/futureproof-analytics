@@ -1391,9 +1391,9 @@ export function DataEntry() {
                         <TableHead className="text-[10px] font-mono">Date</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Ad Spend</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Revenue</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Ad $27</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Ad $47</TableHead>
-                        <TableHead className="text-[10px] font-mono text-right">Ad $333</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Standard</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">Premium</TableHead>
+                        <TableHead className="text-[10px] font-mono text-right">VIP</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">Organic</TableHead>
                         <TableHead className="text-[10px] font-mono">Source</TableHead>
                         <TableHead className="text-[10px] font-mono text-right">CPA</TableHead>
